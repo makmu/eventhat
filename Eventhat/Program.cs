@@ -1,3 +1,5 @@
+using Eventhat;
+using Eventhat.Aggregators;
 using Eventhat.Database;
 using Eventhat.InfraStructure;
 using Eventhat.Testing;
@@ -28,4 +30,33 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// get services
+var db = app.Services.GetService<IMessageStreamDatabase>();
+if (db == null)
+    throw new Exception("Could not inject database at start");
+var messageStore = app.Services.GetService<MessageStore>();
+if (messageStore == null)
+    throw new Exception("Could not inject message store at start");
+
+// build aggregators
+var agggregators = new[]
+{
+    new HomePageAggregator(db, messageStore)
+};
+
+// build components
+IEnumerable<IAgent> components = new List<IAgent>();
+
+// start aggregators
+foreach (var aggregator in agggregators) Task.Run(() => aggregator.StartAsync());
+
+// start components
+foreach (var component in components) Task.Run(() => component.StartAsync());
+
 app.Run();
+
+// stop aggregators
+foreach (var aggregator in agggregators) aggregator.Stop();
+
+// stop components
+foreach (var component in components) component.Stop();
