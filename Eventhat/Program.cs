@@ -1,5 +1,6 @@
 using Eventhat;
 using Eventhat.Aggregators;
+using Eventhat.Components;
 using Eventhat.Database;
 using Eventhat.InfraStructure;
 using Eventhat.Testing;
@@ -39,13 +40,17 @@ if (messageStore == null)
     throw new Exception("Could not inject message store at start");
 
 // build aggregators
-var agggregators = new[]
+IEnumerable<IAgent> agggregators = new IAgent[]
 {
-    new HomePageAggregator(db, messageStore)
+    new HomePageAggregator(db, messageStore),
+    new UserCredentialsAggregator(db, messageStore)
 };
 
 // build components
-IEnumerable<IAgent> components = new List<IAgent>();
+IEnumerable<IAgent> components = new IAgent[]
+{
+    new IdentityComponent(messageStore)
+};
 
 // start aggregators
 foreach (var aggregator in agggregators) Task.Run(() => aggregator.StartAsync());

@@ -5,34 +5,30 @@ namespace Eventhat.InfraStructure;
 
 public class MessageSubscription
 {
-    private readonly Dictionary<string, Func<MessageEntity, Task>> _handlers;
+    private readonly Dictionary<Type, Func<MessageEntity, Task>> _handlers;
     private readonly int _messagesPerTick;
+    private readonly MessageStore _messageStore;
     private readonly int _positionUpdateInterval;
-    private readonly Read _read;
     private readonly string _streamName;
     private readonly string _subscriberId;
     private readonly string _subscriberStreamName;
     private readonly int _tickIntervalMs;
-    private readonly Write _write;
     private int _currentPosition;
     private bool _keepGoing = true;
     private int _messagesSinceLastPositionWrite;
 
     public MessageSubscription(
-        Read read,
-        Write write,
+        MessageStore messageStore,
         string streamName,
-        Dictionary<string, Func<MessageEntity, Task>> handlers,
+        Dictionary<Type, Func<MessageEntity, Task>> handlers,
         string subscriberId,
         int messagesPerTick,
         int positionUpdateInterval,
         int tickIntervalMs)
     {
         _subscriberStreamName = $"subscriberPosition-{subscriberId}";
-        _read = read;
-        _write = write;
+        _messageStore = messageStore;
         _streamName = streamName;
-        _handlers = handlers;
         _subscriberId = subscriberId;
         _handlers = handlers;
         _messagesPerTick = messagesPerTick;
@@ -42,7 +38,7 @@ public class MessageSubscription
 
     public async Task LoadPosition()
     {
-        var lastMessage = await _read.ReadLastMessageAsync(_subscriberStreamName);
+        var lastMessage = await _messageStore.ReadLastMessageAsync(_subscriberStreamName);
         if (lastMessage == null)
         {
             _currentPosition = 0;
@@ -68,13 +64,13 @@ public class MessageSubscription
 
     public async Task WritePosition(int position)
     {
-        await _write.WriteAsync(_subscriberStreamName,
+        await _messageStore.WriteAsync(_subscriberStreamName,
             new Message<StreamRead>(Guid.NewGuid(), new Metadata(Guid.Empty, Guid.Empty), new StreamRead(position)));
     }
 
     public async Task<IEnumerable<MessageEntity>> GetNextBatchOfMessages()
     {
-        return await _read.ReadAsync(_streamName, _currentPosition + 1, _messagesPerTick);
+        return await _messageStore.ReadAsync(_streamName, _currentPosition + 1, _messagesPerTick);
     }
 
     public async Task<int> ProcessBatch(IEnumerable<MessageEntity> messages)
@@ -91,8 +87,10 @@ public class MessageSubscription
 
     private async Task HandleMessage(MessageEntity message)
     {
-        if (_handlers.TryGetValue(message.Type, out var handler)) await handler(message);
-        await _handlers["$any"](message);
+        var type = Type.GetType(message.Type);
+        if (type == null) throw new Exception($"Unknown message type {message.Type}");
+        if (_handlers.TryGetValue(type, out var handler)) await handler(message);
+        await _handlers[typeof(object)](message);
     }
 
     public async Task StartAsync()

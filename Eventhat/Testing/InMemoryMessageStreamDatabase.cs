@@ -1,4 +1,5 @@
 using Eventhat.Database;
+using Eventhat.Database.Entities;
 using Eventhat.Helpers;
 
 namespace Eventhat.Testing;
@@ -6,8 +7,9 @@ namespace Eventhat.Testing;
 public class InMemoryMessageStreamDatabase : IMessageStreamDatabase
 {
     private readonly List<MessageEntity> _messagesTable = new();
+    private readonly List<UserCredentials> _userCredentials = new();
 
-    private List<Page> _entities = new();
+    private List<Page> _pages = new();
 
     public Task WriteMessageAsync(Guid id, string streamName, string type, string data, string metadata, int? expectedVersion)
     {
@@ -35,18 +37,29 @@ public class InMemoryMessageStreamDatabase : IMessageStreamDatabase
         return Task.FromResult(_messagesTable.Where(m => m.StreamName == streamName && m.Position >= fromPosition).OrderBy(m => m.Position).Take(batchSize));
     }
 
-    public IQueryable<Page> Query => _entities.AsQueryable();
+    public IQueryable<Page> Pages => _pages.AsQueryable();
+    public IQueryable<UserCredentials> UserCredentials => _userCredentials.AsQueryable();
 
-    public Task AddAsync(Page page)
+    public Task InsertPageAsync(string name, string data)
     {
-        _entities.Add(page);
+        if (_pages.Any(p => p.Name == name)) return Task.CompletedTask;
+
+        _pages.Add(new Page(name, data));
         return Task.CompletedTask;
     }
 
-    public Task UpdateAsync(Page page)
+    public Task InsertUserCredentialAsync(Guid id, string email, string passwordHash)
     {
-        _entities = _entities.Where(x => x.Name != page.Name).ToList();
-        _entities.Add(page);
+        if (_userCredentials.Any(c => c.Id == id)) return Task.CompletedTask;
+
+        _userCredentials.Add(new UserCredentials(id, email, passwordHash));
+        return Task.CompletedTask;
+    }
+
+    public Task UpdatePageAsync(string name, string data)
+    {
+        _pages = _pages.Where(x => x.Name != name).ToList();
+        _pages.Add(new Page(name, data));
         return Task.CompletedTask;
     }
 }

@@ -1,4 +1,4 @@
-namespace Eventhat.Events;
+namespace Eventhat.Messages.Events;
 
 public class VideoViewed
 {
