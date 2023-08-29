@@ -1,3 +1,6 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using Eventhat.Controllers.Exceptions;
 using Eventhat.Database;
 using Eventhat.Database.Entities;
@@ -5,6 +8,7 @@ using Eventhat.InfraStructure;
 using Eventhat.Messages.Events;
 using Eventhat.Queries;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Eventhat.Controllers;
 
@@ -33,7 +37,8 @@ public class AuthenticateController : ControllerBase
             EnsureUserCredentialFound(userCredential);
             ValidatePassword(userCredential!.Id, attributes.Password, userCredential.PasswordHash);
             await WriteLoggedInEventAsync(traceId, userCredential.Id);
-            return Ok();
+
+            return Ok(GenerateJwtToken(userCredential.Id));
         }
         catch (NotFoundException)
         {
@@ -44,6 +49,23 @@ public class AuthenticateController : ControllerBase
             await HandleCredentialMismatchAsync(traceId, e.UserId);
             return BadRequest("Authentication failed");
         }
+    }
+
+    private string GenerateJwtToken(Guid userId)
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.UTF8.GetBytes("this is my custom Secret key for authentication");
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new Claim[]
+            {
+                new(ClaimTypes.Name, userId.ToString())
+            }),
+            Expires = DateTime.UtcNow.AddHours(1),
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        return tokenHandler.WriteToken(token);
     }
 
     private async Task HandleCredentialMismatchAsync(Guid traceId, Guid userId)
