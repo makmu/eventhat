@@ -47,7 +47,7 @@ public class UserCredentialsAggregator : IAgent
 
         public Dictionary<Type, Func<MessageEntity, Task>> AsDictionary()
         {
-            return new Dictionary<Type, Func<MessageEntity, Task>> { { typeof(VideoViewed), RegisteredAsync } };
+            return new Dictionary<Type, Func<MessageEntity, Task>> { { typeof(Registered), RegisteredAsync } };
         }
     }
 

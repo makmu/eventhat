@@ -17,7 +17,7 @@ public class InMemoryMessageStreamDatabase : IMessageStreamDatabase
         if (expectedVersion != null && streamVersion != expectedVersion)
             throw new Exception($"Version Conflict: stream {streamName}, streamVersion {streamVersion}, expectedVersion {expectedVersion} ");
 
-        _messagesTable.Add(new MessageEntity(id, streamName, type, streamVersion + 1, _messagesTable.Count, data, metadata, DateTimeOffset.Now));
+        _messagesTable.Add(new MessageEntity(id, streamName, type, streamVersion + 1, _messagesTable.Count + 1, data, metadata, DateTimeOffset.Now));
 
         return Task.CompletedTask;
     }
