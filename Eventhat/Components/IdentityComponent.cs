@@ -38,11 +38,11 @@ public class IdentityComponent : IAgent
             "identity");
     }
 
-    public async Task StartAsync()
+    public void Start()
     {
-        await _identityCommandSubscription.StartAsync();
-        await _identityEventSubscription.StartAsync();
-        await _sendEmailEventSubscription.StartAsync();
+        _ = _identityCommandSubscription.StartAsync();
+        _ = _identityEventSubscription.StartAsync();
+        _ = _sendEmailEventSubscription.StartAsync();
     }
 
     public void Stop()
@@ -79,39 +79,8 @@ public class IdentityComponent : IAgent
         {
             return new Dictionary<Type, Func<MessageEntity, Task>>
             {
-                { typeof(Register), RegisterAsync },
-                { typeof(Registered), RegisteredAsync }
+                { typeof(Register), RegisterAsync }
             };
-        }
-
-        private async Task RegisteredAsync(MessageEntity @event)
-        {
-            try
-            {
-                var data = @event.Data.Deserialize<Registered>();
-                var identity = await _identityComponent.LoadIdentityAsync(data.UserId);
-                _identityComponent.EnsureRegistrationEmailNotSent(identity);
-                var (to, subject, text, html) = RenderRegistrationEmail(identity);
-                await WriteSendCommandAsync(@event, identity, to, subject, text, html);
-            }
-            catch (AlreadySentRegistrationEmailException e)
-            {
-                // to nothing
-            }
-        }
-
-        private (string to, string subject, string text, string html) RenderRegistrationEmail(Identity identity)
-        {
-            return (identity.Email, "Welcome at Eventhat", $"Hi {identity.Email}, welcome to Eventhat!", $"<h1>Hi {identity.Email}, welcome to Eventhat!</h1>");
-        }
-
-        private async Task WriteSendCommandAsync(MessageEntity @event, Identity identity, string to, string subject, string text, string html)
-        {
-            var emailId = Guid.NewGuid();
-            var metadata = @event.Metadata.Deserialize<Metadata>();
-            var streamName = $"sendEmail:command-{emailId}";
-            await _messageStore.WriteAsync(streamName,
-                new Message<Send>(Guid.NewGuid(), new Metadata(metadata.TraceId, metadata.UserId, $"identity-{identity.Id}"), new Send(emailId, to, subject, text, html)));
         }
 
         private async Task RegisterAsync(MessageEntity command)

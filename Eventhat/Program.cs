@@ -108,10 +108,10 @@ IEnumerable<IAgent> components = new IAgent[]
 };
 
 // start aggregators
-foreach (var aggregator in agggregators) Task.Run(() => aggregator.StartAsync());
+foreach (var aggregator in agggregators) aggregator.Start();
 
 // start components
-foreach (var component in components) Task.Run(() => component.StartAsync());
+foreach (var component in components) component.Start();
 
 app.Run();
 

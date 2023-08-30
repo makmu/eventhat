@@ -20,15 +20,15 @@ public class HomePageAggregator : IAgent
             "aggregators:home-page");
     }
 
-    public async Task StartAsync()
-    {
-        await InitAsync();
-        await _subscription.StartAsync();
-    }
-
     public void Stop()
     {
         _subscription.Stop();
+    }
+
+    public void Start()
+    {
+        var task = InitAsync();
+        task.ContinueWith(async delegate { await _subscription.StartAsync(); });
     }
 
     public async Task InitAsync()

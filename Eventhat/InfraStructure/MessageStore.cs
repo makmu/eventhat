@@ -40,7 +40,7 @@ public class MessageStore
     {
         return messages.Aggregate(new T(), (entity, @event) =>
         {
-            if (projection.TryGetValue(@event.Data.GetType(), out var p)) return p(entity, @event);
+            if (projection.TryGetValue(Type.GetType(@event.Type) ?? throw new InvalidOperationException($"unknown message type {@event.Type}"), out var p)) return p(entity, @event);
 
             return entity;
         });

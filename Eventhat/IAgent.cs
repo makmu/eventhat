@@ -2,7 +2,7 @@ namespace Eventhat;
 
 public interface IAgent
 {
-    public Task StartAsync();
+    public void Start();
 
     public void Stop();
 }

@@ -20,9 +20,9 @@ public class UserCredentialsAggregator : IAgent
             "aggregators:user-credentials");
     }
 
-    public async Task StartAsync()
+    public void Start()
     {
-        await _subscription.StartAsync();
+        _ = _subscription.StartAsync();
     }
 
     public void Stop()

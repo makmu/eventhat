@@ -12,6 +12,6 @@ public static class StreamNameExtensions
 
     public static Guid ToId(this string streamName)
     {
-        return new Guid(streamName.Split('-')[1]);
+        return new Guid(streamName.Substring(streamName.IndexOf('-') + 1));
     }
 }

@@ -9,10 +9,10 @@ public class MessageSubscription
     private readonly Dictionary<Type, Func<MessageEntity, Task>> _handlers;
     private readonly int _messagesPerTick;
     private readonly MessageStore _messageStore;
+    private readonly string? _originStreamName;
     private readonly int _positionUpdateInterval;
     private readonly string _streamName;
     private readonly string _subscriberId;
-    private readonly string? _originStreamName;
     private readonly string _subscriberStreamName;
     private readonly int _tickIntervalMs;
     private int _currentPosition;
@@ -95,8 +95,6 @@ public class MessageSubscription
         if (type == null) throw new Exception($"Unknown message type {message.Type}");
         if (_handlers.TryGetValue(type, out var handler))
             await handler(message);
-        else
-            await _handlers[typeof(object)](message);
     }
 
     public async Task StartAsync()
@@ -119,7 +117,7 @@ public class MessageSubscription
         while (_keepGoing)
         {
             var messagesProcessed = await TickAsync();
-            if (messagesProcessed == 0) Thread.Sleep(_tickIntervalMs);
+            if (messagesProcessed == 0) await Task.Delay(_tickIntervalMs);
         }
     }
 

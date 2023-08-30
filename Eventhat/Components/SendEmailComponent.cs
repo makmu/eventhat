@@ -22,9 +22,9 @@ public class SendEmailComponent : IAgent
         );
     }
 
-    public async Task StartAsync()
+    public void Start()
     {
-        await _subscription.StartAsync();
+        _ = _subscription.StartAsync();
     }
 
     public void Stop()
