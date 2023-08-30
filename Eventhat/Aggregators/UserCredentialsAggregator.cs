@@ -42,7 +42,7 @@ public class UserCredentialsAggregator : IAgent
         public async Task RegisteredAsync(MessageEntity message)
         {
             var data = message.Data.Deserialize<Registered>();
-            await _queries.CreateUserCredentialsAsync(data.Id, data.Email, data.PasswordHash);
+            await _queries.CreateUserCredentialsAsync(data.UserId, data.Email, data.PasswordHash);
         }
 
         public Dictionary<Type, Func<MessageEntity, Task>> AsDictionary()

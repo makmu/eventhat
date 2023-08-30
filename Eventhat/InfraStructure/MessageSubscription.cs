@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Eventhat.Database;
+using Eventhat.Helpers;
 
 namespace Eventhat.InfraStructure;
 
@@ -11,17 +12,18 @@ public class MessageSubscription
     private readonly int _positionUpdateInterval;
     private readonly string _streamName;
     private readonly string _subscriberId;
+    private readonly string? _originStreamName;
     private readonly string _subscriberStreamName;
     private readonly int _tickIntervalMs;
     private int _currentPosition;
     private bool _keepGoing = true;
     private int _messagesSinceLastPositionWrite;
 
-    public MessageSubscription(
-        MessageStore messageStore,
+    public MessageSubscription(MessageStore messageStore,
         string streamName,
         Dictionary<Type, Func<MessageEntity, Task>> handlers,
         string subscriberId,
+        string? originStreamName,
         int messagesPerTick,
         int positionUpdateInterval,
         int tickIntervalMs)
@@ -30,6 +32,7 @@ public class MessageSubscription
         _messageStore = messageStore;
         _streamName = streamName;
         _subscriberId = subscriberId;
+        _originStreamName = originStreamName;
         _handlers = handlers;
         _messagesPerTick = messagesPerTick;
         _positionUpdateInterval = positionUpdateInterval;
@@ -70,7 +73,8 @@ public class MessageSubscription
 
     public async Task<IEnumerable<MessageEntity>> GetNextBatchOfMessages()
     {
-        return await _messageStore.ReadAsync(_streamName, _currentPosition + 1, _messagesPerTick);
+        var batch = await _messageStore.ReadAsync(_streamName, _currentPosition + 1, _messagesPerTick);
+        return batch.Where(x => _originStreamName == null || x.Metadata.Deserialize<Metadata>().OriginStreamName?.GetCategory() == _originStreamName);
     }
 
     public async Task<int> ProcessBatch(IEnumerable<MessageEntity> messages)
