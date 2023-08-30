@@ -4,6 +4,7 @@ using Eventhat.Aggregators;
 using Eventhat.Components;
 using Eventhat.Database;
 using Eventhat.InfraStructure;
+using Eventhat.Mail;
 using Eventhat.Testing;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -102,7 +103,8 @@ IEnumerable<IAgent> agggregators = new IAgent[]
 // build components
 IEnumerable<IAgent> components = new IAgent[]
 {
-    new IdentityComponent(messageStore)
+    new IdentityComponent(messageStore),
+    new SendEmailComponent(messageStore, new Mailer(), "no-reply@test.com")
 };
 
 // start aggregators
