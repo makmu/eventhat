@@ -104,7 +104,8 @@ IEnumerable<IAgent> agggregators = new IAgent[]
 IEnumerable<IAgent> components = new IAgent[]
 {
     new IdentityComponent(messageStore),
-    new SendEmailComponent(messageStore, new Mailer(), "no-reply@test.com")
+    new SendEmailComponent(messageStore, new Mailer(), "no-reply@test.com"),
+    new VideoPublishingComponent(messageStore)
 };
 
 // start aggregators
