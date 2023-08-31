@@ -6,7 +6,7 @@ namespace Eventhat.InfraStructure;
 
 public class MessageSubscription
 {
-    private readonly Dictionary<Type, Func<MessageEntity, Task>> _handlers;
+    private readonly Dictionary<Type, Func<MessageEntity, Task>> _handlers = new();
     private readonly int _messagesPerTick;
     private readonly MessageStore _messageStore;
     private readonly string? _originStreamName;
@@ -21,7 +21,6 @@ public class MessageSubscription
 
     public MessageSubscription(MessageStore messageStore,
         string streamName,
-        Dictionary<Type, Func<MessageEntity, Task>> handlers,
         string subscriberId,
         string? originStreamName,
         int messagesPerTick,
@@ -33,7 +32,6 @@ public class MessageSubscription
         _streamName = streamName;
         _subscriberId = subscriberId;
         _originStreamName = originStreamName;
-        _handlers = handlers;
         _messagesPerTick = messagesPerTick;
         _positionUpdateInterval = positionUpdateInterval;
         _tickIntervalMs = tickIntervalMs;
@@ -133,6 +131,11 @@ public class MessageSubscription
             Stop();
             return 0;
         }
+    }
+
+    public void RegisterHandler<T>(Func<MessageEntity, Task> handler)
+    {
+        _handlers.Add(typeof(T), handler);
     }
 }
 

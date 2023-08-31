@@ -48,13 +48,12 @@ public class MessageStore
 
     public MessageSubscription CreateSubscription(
         string streamName,
-        Dictionary<Type, Func<MessageEntity, Task>> handlers,
         string subscriberId,
         string? originStreamName = null,
         int messagesPerTick = 100,
         int positionUpdateInterval = 100,
         int tickIntervalMs = 100)
     {
-        return new MessageSubscription(this, streamName, handlers, subscriberId, originStreamName, messagesPerTick, positionUpdateInterval, tickIntervalMs);
+        return new MessageSubscription(this, streamName, subscriberId, originStreamName, messagesPerTick, positionUpdateInterval, tickIntervalMs);
     }
 }

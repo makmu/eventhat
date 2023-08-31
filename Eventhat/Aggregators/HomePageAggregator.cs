@@ -13,11 +13,10 @@ public class HomePageAggregator : IAgent
     public HomePageAggregator(IMessageStreamDatabase db, MessageStore messageStore)
     {
         _queries = new Queries(db);
-        var handlers = new Handlers(_queries);
         _subscription = messageStore.CreateSubscription(
             "viewing",
-            handlers.AsDictionary(),
             "aggregators:home-page");
+        _subscription.RegisterHandler<VideoViewed>(VideoViewedAsync);
     }
 
     public void Stop()
@@ -36,24 +35,9 @@ public class HomePageAggregator : IAgent
         await _queries.EnsureHomepage();
     }
 
-    public class Handlers
+    public async Task VideoViewedAsync(MessageEntity message)
     {
-        private readonly Queries _queries;
-
-        public Handlers(Queries queries)
-        {
-            _queries = queries;
-        }
-
-        public async Task VideoViewedAsync(MessageEntity message)
-        {
-            await _queries.IncrementVideosWatchedAsync(message.GlobalPosition);
-        }
-
-        public Dictionary<Type, Func<MessageEntity, Task>> AsDictionary()
-        {
-            return new Dictionary<Type, Func<MessageEntity, Task>> { { typeof(VideoViewed), VideoViewedAsync } };
-        }
+        await _queries.IncrementVideosWatchedAsync(message.GlobalPosition);
     }
 
     public class Queries

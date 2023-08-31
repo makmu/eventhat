@@ -13,11 +13,10 @@ public class UserCredentialsAggregator : IAgent
     public UserCredentialsAggregator(IMessageStreamDatabase db, MessageStore messageStore)
     {
         _queries = new Queries(db);
-        var handlers = new Handlers(_queries);
         _subscription = messageStore.CreateSubscription(
             "identity",
-            handlers.AsDictionary(),
             "aggregators:user-credentials");
+        _subscription.RegisterHandler<Registered>(RegisteredAsync);
     }
 
     public void Start()
@@ -30,25 +29,10 @@ public class UserCredentialsAggregator : IAgent
         _subscription.Stop();
     }
 
-    public class Handlers
+    public async Task RegisteredAsync(MessageEntity message)
     {
-        private readonly Queries _queries;
-
-        public Handlers(Queries queries)
-        {
-            _queries = queries;
-        }
-
-        public async Task RegisteredAsync(MessageEntity message)
-        {
-            var data = message.Data.Deserialize<Registered>();
-            await _queries.CreateUserCredentialsAsync(data.UserId, data.Email, data.PasswordHash);
-        }
-
-        public Dictionary<Type, Func<MessageEntity, Task>> AsDictionary()
-        {
-            return new Dictionary<Type, Func<MessageEntity, Task>> { { typeof(Registered), RegisteredAsync } };
-        }
+        var data = message.Data.Deserialize<Registered>();
+        await _queries.CreateUserCredentialsAsync(data.UserId, data.Email, data.PasswordHash);
     }
 
     public class Queries
