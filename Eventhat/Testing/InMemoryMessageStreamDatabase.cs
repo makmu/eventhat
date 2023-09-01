@@ -6,10 +6,15 @@ namespace Eventhat.Testing;
 
 public class InMemoryMessageStreamDatabase : IMessageStreamDatabase
 {
+    private readonly List<CreatorVideo> _creatorVideos = new();
     private readonly List<MessageEntity> _messagesTable = new();
     private readonly List<UserCredentials> _userCredentials = new();
+    private readonly List<VideoOperation> _videoOperations = new();
 
     private List<Page> _pages = new();
+
+    public IQueryable<VideoOperation> VideoOperations => _videoOperations.AsQueryable();
+    public IQueryable<CreatorVideo> CreatorVideos => _creatorVideos.AsQueryable();
 
     public Task WriteMessageAsync(Guid id, string streamName, string type, string data, string metadata, int? expectedVersion)
     {
@@ -53,6 +58,27 @@ public class InMemoryMessageStreamDatabase : IMessageStreamDatabase
         if (_userCredentials.Any(c => c.Id == id)) return Task.CompletedTask;
 
         _userCredentials.Add(new UserCredentials(id, email, passwordHash));
+        return Task.CompletedTask;
+    }
+
+    public Task InsertVideoOperationAsync(Guid traceId, Guid videoId, bool succeeded, string reason)
+    {
+        _videoOperations.Add(new VideoOperation(traceId, videoId, succeeded, reason));
+        return Task.CompletedTask;
+    }
+
+    public Task InsertCreatorsVideoAsync(Guid videoId, Uri transcodedUri, int position)
+    {
+        if (_creatorVideos.Any(v => v.VideoId == videoId)) return Task.CompletedTask;
+        _creatorVideos.Add(new CreatorVideo(videoId, transcodedUri, "Untitled", position));
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateCreatorsVideoAsync(Guid videoId, string name, int position)
+    {
+        var existingVideo = _creatorVideos.Single(v => v.VideoId == videoId && v.Position < position);
+        _creatorVideos.Remove(existingVideo);
+        _creatorVideos.Add(new CreatorVideo(existingVideo.VideoId, existingVideo.TranscodedUri, name, position));
         return Task.CompletedTask;
     }
 

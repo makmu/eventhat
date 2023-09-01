@@ -20,6 +20,7 @@ public class VideoPublishingComponent : IAgent
             "components:video-publishing"
         );
         _subscription.RegisterHandler<PublishVideo>(PublishVideoAsync);
+        _subscription.RegisterHandler<NameVideo>(NameVideoAsync);
     }
 
     public void Start()
@@ -30,6 +31,59 @@ public class VideoPublishingComponent : IAgent
     public void Stop()
     {
         _subscription.Stop();
+    }
+
+    private async Task NameVideoAsync(MessageEntity command)
+    {
+        try
+        {
+            var video = await LoadVideoAsync(command);
+            EnsureCommandHasNotBeenProcessed(command, video);
+            EnsureNameIsValid(command);
+            await WriteVideoNamedEventAsync(command);
+        }
+        catch (CommandAlreadyProcessedException e)
+        {
+            // to nothing
+        }
+        catch (NameValidationException e)
+        {
+            await WriteVideoNameRejectedEventAsync(command, e);
+        }
+    }
+
+    private async Task WriteVideoNameRejectedEventAsync(MessageEntity command, NameValidationException e)
+    {
+        var data = command.Data.Deserialize<NameVideo>();
+        var metadata = command.Metadata.Deserialize<Metadata>();
+
+        var streamName = $"videoPublishing-{data.VideoId}";
+
+        await _messageStore.WriteAsync(streamName,
+            new Message<VideoNameRejected>(Guid.NewGuid(), new Metadata(metadata.TraceId, metadata.UserId), new VideoNameRejected(data.Name, e.Message)));
+    }
+
+    private async Task WriteVideoNamedEventAsync(MessageEntity command)
+    {
+        var data = command.Data.Deserialize<NameVideo>();
+        var metadata = command.Metadata.Deserialize<Metadata>();
+
+        var streamName = $"videoPublishing-{data.VideoId}";
+
+        await _messageStore.WriteAsync(streamName,
+            new Message<VideoNamed>(Guid.NewGuid(), new Metadata(metadata.TraceId, metadata.UserId), new VideoNamed(data.Name)));
+    }
+
+    private void EnsureNameIsValid(MessageEntity command)
+    {
+        var data = command.Data.Deserialize<NameVideo>();
+        if (string.IsNullOrWhiteSpace(data.Name)) throw new NameValidationException("Video name must not be empty");
+    }
+
+    private void EnsureCommandHasNotBeenProcessed(MessageEntity command, Video video)
+    {
+        if (video.Sequence > command.GlobalPosition)
+            throw new CommandAlreadyProcessedException();
     }
 
     private async Task PublishVideoAsync(MessageEntity command)
@@ -74,15 +128,14 @@ public class VideoPublishingComponent : IAgent
             new Message<VideoPublished>(Guid.NewGuid(), new Metadata(metadata.TraceId, metadata.UserId), new VideoPublished(data.VideoId, data.OwnerId, data.SourceUri, transcodedUri)));
     }
 
-    private Task<Uri> TranscodeVideoAsync(MessageEntity publishCommand)
+    private async Task<Uri> TranscodeVideoAsync(MessageEntity publishCommand)
     {
         var data = publishCommand.Data.Deserialize<PublishVideo>();
         Console.WriteLine("Transcoding Video...");
-        var videoFakeData = Enumerable.Range(0, 10000000).Select(x => Guid.NewGuid()).ToList();
-        videoFakeData.Sort();
+        await Task.Delay(3000);
         Console.WriteLine("Done...");
 
-        return Task.FromResult(new Uri("http://somewhere.over.the.rainbow.com/file.mkv"));
+        return new Uri("http://somewhere.over.the.rainbow.com/file.mkv");
     }
 
     private void EnsurePublishingNotAttempted(Video video)

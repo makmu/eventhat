@@ -97,7 +97,9 @@ if (messageStore == null)
 IEnumerable<IAgent> agggregators = new IAgent[]
 {
     new HomePageAggregator(db, messageStore),
-    new UserCredentialsAggregator(db, messageStore)
+    new UserCredentialsAggregator(db, messageStore),
+    new VideoOperationsAggregator(db, messageStore),
+    new CreatorsVideosAggregator(db, messageStore)
 };
 
 // build components

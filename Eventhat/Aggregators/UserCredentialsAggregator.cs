@@ -7,12 +7,12 @@ namespace Eventhat.Aggregators;
 
 public class UserCredentialsAggregator : IAgent
 {
-    private readonly Queries _queries;
+    private readonly IMessageStreamDatabase _db;
     private readonly MessageSubscription _subscription;
 
     public UserCredentialsAggregator(IMessageStreamDatabase db, MessageStore messageStore)
     {
-        _queries = new Queries(db);
+        _db = db;
         _subscription = messageStore.CreateSubscription(
             "identity",
             "aggregators:user-credentials");
@@ -32,21 +32,6 @@ public class UserCredentialsAggregator : IAgent
     public async Task RegisteredAsync(MessageEntity message)
     {
         var data = message.Data.Deserialize<Registered>();
-        await _queries.CreateUserCredentialsAsync(data.UserId, data.Email, data.PasswordHash);
-    }
-
-    public class Queries
-    {
-        private readonly IMessageStreamDatabase _db;
-
-        public Queries(IMessageStreamDatabase db)
-        {
-            _db = db;
-        }
-
-        public async Task CreateUserCredentialsAsync(Guid id, string email, string passwordHash)
-        {
-            await _db.InsertUserCredentialAsync(id, email, passwordHash);
-        }
+        await _db.InsertUserCredentialAsync(data.UserId, data.Email, data.PasswordHash);
     }
 }

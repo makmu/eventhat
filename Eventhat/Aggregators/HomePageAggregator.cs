@@ -7,12 +7,12 @@ namespace Eventhat.Aggregators;
 
 public class HomePageAggregator : IAgent
 {
-    private readonly Queries _queries;
+    private readonly IMessageStreamDatabase _db;
     private readonly MessageSubscription _subscription;
 
     public HomePageAggregator(IMessageStreamDatabase db, MessageStore messageStore)
     {
-        _queries = new Queries(db);
+        _db = db;
         _subscription = messageStore.CreateSubscription(
             "viewing",
             "aggregators:home-page");
@@ -32,40 +32,30 @@ public class HomePageAggregator : IAgent
 
     public async Task InitAsync()
     {
-        await _queries.EnsureHomepage();
+        await EnsureHomepage();
     }
 
     public async Task VideoViewedAsync(MessageEntity message)
     {
-        await _queries.IncrementVideosWatchedAsync(message.GlobalPosition);
+        await IncrementVideosWatchedAsync(message.GlobalPosition);
     }
 
-    public class Queries
+    public async Task EnsureHomepage()
     {
-        private readonly IMessageStreamDatabase _db;
+        await _db.InsertPageAsync("home", JsonSerializer.Serialize(new HomepageData(0, 0)));
+    }
 
-        public Queries(IMessageStreamDatabase db)
-        {
-            _db = db;
-        }
+    public async Task IncrementVideosWatchedAsync(int globalPosition)
+    {
+        var page = _db.Pages.Single(p => p.Name == "home");
+        var storedHomepageData = JsonSerializer.Deserialize<HomepageData>(page.Data);
+        if (storedHomepageData == null) throw new Exception("Cannot deserialize homepage data");
 
-        public async Task EnsureHomepage()
-        {
-            await _db.InsertPageAsync("home", JsonSerializer.Serialize(new HomepageData(0, 0)));
-        }
+        if (storedHomepageData.LastViewProcessed >= globalPosition) return;
 
-        public async Task IncrementVideosWatchedAsync(int globalPosition)
-        {
-            var page = _db.Pages.Single(p => p.Name == "home");
-            var storedHomepageData = JsonSerializer.Deserialize<HomepageData>(page.Data);
-            if (storedHomepageData == null) throw new Exception("Cannot deserialize homepage data");
+        var updatedHomepageData = new HomepageData(storedHomepageData.VideosWatched + 1, globalPosition);
 
-            if (storedHomepageData.LastViewProcessed >= globalPosition) return;
-
-            var updatedHomepageData = new HomepageData(storedHomepageData.VideosWatched + 1, globalPosition);
-
-            await _db.UpdatePageAsync(page.Name, JsonSerializer.Serialize(updatedHomepageData));
-        }
+        await _db.UpdatePageAsync(page.Name, JsonSerializer.Serialize(updatedHomepageData));
     }
 
     public class HomepageData

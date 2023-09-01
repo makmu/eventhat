@@ -13,6 +13,10 @@ public class Video
 
     public Guid OwnerId { get; set; }
 
+    public string Name { get; set; } = string.Empty;
+
+    public int Sequence { get; set; }
+
     public class Projection
     {
         public Dictionary<Type, Func<Video, MessageEntity, Video>> AsDictionary()
@@ -20,8 +24,26 @@ public class Video
             return new Dictionary<Type, Func<Video, MessageEntity, Video>>
             {
                 { typeof(VideoPublished), VideoPublished },
-                { typeof(VideoPublishingFailed), VideoPublishingFailed }
+                { typeof(VideoPublishingFailed), VideoPublishingFailed },
+                { typeof(VideoNamed), VideoNamed },
+                { typeof(VideoNameRejected), VideoNameRejected }
             };
+        }
+
+        private Video VideoNamed(Video video, MessageEntity message)
+        {
+            var data = message.Data.Deserialize<VideoNamed>();
+            video.Sequence = message.GlobalPosition;
+            video.Name = data.Name;
+
+            return video;
+        }
+
+        private Video VideoNameRejected(Video video, MessageEntity message)
+        {
+            video.Sequence = message.GlobalPosition;
+
+            return video;
         }
 
         private Video VideoPublished(Video video, MessageEntity message)
