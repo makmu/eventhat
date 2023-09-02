@@ -6,6 +6,7 @@ namespace Eventhat.Testing;
 
 public class InMemoryMessageStreamDatabase : IMessageStreamDatabase
 {
+    private readonly List<AdminUser> _adminUsers = new();
     private readonly List<CreatorVideo> _creatorVideos = new();
     private readonly List<MessageEntity> _messagesTable = new();
     private readonly List<UserCredentials> _userCredentials = new();
@@ -15,6 +16,7 @@ public class InMemoryMessageStreamDatabase : IMessageStreamDatabase
 
     public IQueryable<VideoOperation> VideoOperations => _videoOperations.AsQueryable();
     public IQueryable<CreatorVideo> CreatorVideos => _creatorVideos.AsQueryable();
+    public IQueryable<AdminUser> AdminUsers => _adminUsers.AsQueryable();
 
     public Task WriteMessageAsync(Guid id, string streamName, string type, string data, string metadata, int? expectedVersion)
     {
@@ -79,6 +81,76 @@ public class InMemoryMessageStreamDatabase : IMessageStreamDatabase
         var existingVideo = _creatorVideos.Single(v => v.VideoId == videoId && v.Position < position);
         _creatorVideos.Remove(existingVideo);
         _creatorVideos.Add(new CreatorVideo(existingVideo.VideoId, existingVideo.TranscodedUri, name, position));
+        return Task.CompletedTask;
+    }
+
+    public Task InsertAdminUsersAsync(Guid id)
+    {
+        if (_adminUsers.Any(u => u.Id == id)) return Task.CompletedTask;
+        _adminUsers.Add(new AdminUser(id, string.Empty, false, 0, 0, 0));
+        return Task.CompletedTask;
+    }
+
+    public Task SetAdminUserEmail(Guid id, string email, int globalPosition)
+    {
+        var existingEntity = _adminUsers.SingleOrDefault(u => u.Id == id);
+        if (existingEntity == null) throw new Exception($"Unknown user with id {id}");
+
+        if (existingEntity.LastIdentityEventGlobalPosition >= globalPosition)
+            return Task.CompletedTask;
+
+        _adminUsers.Remove(existingEntity);
+
+        _adminUsers.Add(
+            new AdminUser(
+                id,
+                email,
+                existingEntity.RegistrationEmailSent,
+                globalPosition,
+                existingEntity.LoginCount,
+                existingEntity.LastAuthenticationEventGlobalPosition));
+        return Task.CompletedTask;
+    }
+
+    public Task MarkRegistrationEmailSent(Guid id, int globalPosition)
+    {
+        var existingEntity = _adminUsers.SingleOrDefault(u => u.Id == id);
+        if (existingEntity == null) throw new Exception($"Unknown user with id {id}");
+
+        if (existingEntity.LastIdentityEventGlobalPosition >= globalPosition)
+            return Task.CompletedTask;
+
+        _adminUsers.Remove(existingEntity);
+
+        _adminUsers.Add(
+            new AdminUser(
+                id,
+                existingEntity.Email,
+                true,
+                globalPosition,
+                existingEntity.LoginCount,
+                existingEntity.LastAuthenticationEventGlobalPosition));
+        return Task.CompletedTask;
+    }
+
+    public Task IncreaseAdminUserLoginCount(Guid id, int globalPosition)
+    {
+        var existingEntity = _adminUsers.SingleOrDefault(u => u.Id == id);
+        if (existingEntity == null) throw new Exception($"Unknown user with id {id}");
+
+        if (existingEntity.LastAuthenticationEventGlobalPosition >= globalPosition)
+            return Task.CompletedTask;
+
+        _adminUsers.Remove(existingEntity);
+
+        _adminUsers.Add(
+            new AdminUser(
+                id,
+                existingEntity.Email,
+                existingEntity.RegistrationEmailSent,
+                existingEntity.LastIdentityEventGlobalPosition,
+                existingEntity.LoginCount + 1,
+                globalPosition));
         return Task.CompletedTask;
     }
 

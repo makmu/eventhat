@@ -99,7 +99,8 @@ IEnumerable<IAgent> agggregators = new IAgent[]
     new HomePageAggregator(db, messageStore),
     new UserCredentialsAggregator(db, messageStore),
     new VideoOperationsAggregator(db, messageStore),
-    new CreatorsVideosAggregator(db, messageStore)
+    new CreatorsVideosAggregator(db, messageStore),
+    new AdminUsersAggregator(db, messageStore)
 };
 
 // build components

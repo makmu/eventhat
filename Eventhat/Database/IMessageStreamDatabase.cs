@@ -8,6 +8,7 @@ public interface IMessageStreamDatabase
     IQueryable<UserCredentials> UserCredentials { get; }
     IQueryable<VideoOperation> VideoOperations { get; }
     IQueryable<CreatorVideo> CreatorVideos { get; }
+    IQueryable<AdminUser> AdminUsers { get; }
     Task WriteMessageAsync(Guid id, string streamName, string type, string data, string metadata, int? expectedVersion);
     Task<IEnumerable<MessageEntity>> GetCategoryMessages(string streamName, int fromPosition, int batchSize);
 
@@ -23,4 +24,15 @@ public interface IMessageStreamDatabase
     Task InsertVideoOperationAsync(Guid traceId, Guid videoId, bool succeeded, string reason);
     Task InsertCreatorsVideoAsync(Guid videoId, Uri transcodedUri, int position);
     Task UpdateCreatorsVideoAsync(Guid videoId, string name, int position);
+
+    Task InsertAdminUsersAsync(
+        Guid id);
+
+    Task SetAdminUserEmail(
+        Guid id,
+        string email,
+        int lastIdentityEventGlobalPosition);
+
+    Task MarkRegistrationEmailSent(Guid dataIdentityId, int messageGlobalPosition);
+    Task IncreaseAdminUserLoginCount(Guid dataUserId, int messageGlobalPosition);
 }
