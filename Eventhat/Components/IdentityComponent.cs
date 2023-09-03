@@ -26,7 +26,7 @@ public class IdentityComponent : IAgent
         _identityEventSubscription = messageStore.CreateSubscription(
             "identity",
             "components:identity");
-        _identityCommandSubscription.RegisterHandler<Registered>(RegisteredAsync);
+        _identityEventSubscription.RegisterHandler<Registered>(RegisteredAsync);
 
         _sendEmailEventSubscription = messageStore.CreateSubscription(
             "sendEmail",

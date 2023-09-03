@@ -14,6 +14,8 @@ public class MessageStore
 
     public async Task<IEnumerable<MessageEntity>> ReadAsync(string streamName, int fromPosition = 0, int batchSize = 1000)
     {
+        if (streamName == "$all") return _db.Messages.OrderBy(m => m.GlobalPosition).Take(new Range(fromPosition, fromPosition + batchSize));
+
         if (streamName.Contains('-'))
             return await _db.GetStreamMessages(streamName, fromPosition, batchSize);
 

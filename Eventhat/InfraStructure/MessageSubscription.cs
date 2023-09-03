@@ -93,6 +93,8 @@ public class MessageSubscription
         if (type == null) throw new Exception($"Unknown message type {message.Type}");
         if (_handlers.TryGetValue(type, out var handler))
             await handler(message);
+        if (_handlers.TryGetValue(typeof(object), out handler))
+            await handler(message);
     }
 
     public async Task StartAsync()
