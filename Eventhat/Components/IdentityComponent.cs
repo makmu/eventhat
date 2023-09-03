@@ -1,4 +1,3 @@
-using Eventhat.Database;
 using Eventhat.Helpers;
 using Eventhat.InfraStructure;
 using Eventhat.Messages.Commands;
@@ -62,12 +61,11 @@ public class IdentityComponent : IAgent
     }
 
 
-    private async Task RegisterAsync(MessageEntity command)
+    private async Task RegisterAsync(Message<Register> command)
     {
         try
         {
-            var data = command.Data.Deserialize<Register>();
-            var identity = await LoadIdentityAsync(data.UserId);
+            var identity = await LoadIdentityAsync(command.Data.UserId);
             await EnsureNotRegisteredAsync(identity);
             await WriteRegisteredEventAsync(command);
         }
@@ -77,12 +75,12 @@ public class IdentityComponent : IAgent
         }
     }
 
-    private async Task WriteRegisteredEventAsync(MessageEntity command)
+    private async Task WriteRegisteredEventAsync(Message<Register> command)
     {
-        var data = command.Data.Deserialize<Register>();
-        var registeredEvent = new Message<Registered>(Guid.NewGuid(), command.Metadata.Deserialize<Metadata>(), new Registered(data.UserId, data.Email, data.PasswordHash));
-        var identityStreamName = $"identity-{data.UserId}";
-        await _messageStore.WriteAsync(identityStreamName, registeredEvent);
+        await _messageStore.WriteAsync(
+            $"identity-{command.Data.UserId}",
+            command.Metadata,
+            new Registered(command.Data.UserId, command.Data.Email, command.Data.PasswordHash));
     }
 
     private Task EnsureNotRegisteredAsync(Identity identity)
@@ -91,12 +89,11 @@ public class IdentityComponent : IAgent
         return Task.CompletedTask;
     }
 
-    private async Task RegisteredAsync(MessageEntity @event)
+    private async Task RegisteredAsync(Message<Registered> @event)
     {
         try
         {
-            var data = @event.Data.Deserialize<Registered>();
-            var identity = await LoadIdentityAsync(data.UserId);
+            var identity = await LoadIdentityAsync(@event.Data.UserId);
             EnsureRegistrationEmailNotSent(identity);
             var (to, subject, text, html) = RenderRegistrationEmail(identity);
             await WriteSendCommandAsync(@event, identity, to, subject, text, html);
@@ -112,19 +109,18 @@ public class IdentityComponent : IAgent
         return (identity.Email, "Welcome at Eventhat", $"Hi {identity.Email}, welcome to Eventhat!", $"<h1>Hi {identity.Email}, welcome to Eventhat!</h1>");
     }
 
-    private async Task WriteSendCommandAsync(MessageEntity @event, Identity identity, string to, string subject, string text, string html)
+    private async Task WriteSendCommandAsync(Message<Registered> @event, Identity identity, string to, string subject, string text, string html)
     {
         var emailId = Guid.NewGuid();
-        var metadata = @event.Metadata.Deserialize<Metadata>();
-        var streamName = $"sendEmail:command-{emailId}";
-        await _messageStore.WriteAsync(streamName,
-            new Message<Send>(Guid.NewGuid(), new Metadata(metadata.TraceId, metadata.UserId, $"identity-{identity.Id}"), new Send(emailId, to, subject, text, html)));
+        await _messageStore.WriteAsync(
+            $"sendEmail:command-{emailId}",
+            new Metadata(@event.Metadata.TraceId, @event.Metadata.UserId, $"identity-{identity.Id}"),
+            new Send(emailId, to, subject, text, html));
     }
 
-    private async Task SentAsync(MessageEntity @event)
+    private async Task SentAsync(Message<Sent> @event)
     {
-        var metadata = @event.Metadata.Deserialize<Metadata>();
-        var identityId = metadata.OriginStreamName!.ToId();
+        var identityId = @event.Metadata.OriginStreamName!.ToId();
 
         try
         {
@@ -138,14 +134,11 @@ public class IdentityComponent : IAgent
         }
     }
 
-    private async Task WriteRegistrationEmailSentEventAsync(MessageEntity @event, Identity identity)
+    private async Task WriteRegistrationEmailSentEventAsync(Message<Sent> @event, Identity identity)
     {
-        var metadata = @event.Metadata.Deserialize<Metadata>();
-        var data = @event.Data.Deserialize<Sent>();
-
-        var identityStreamName = metadata.OriginStreamName!;
-
-        await _messageStore.WriteAsync(identityStreamName,
-            new Message<RegistrationEmailSent>(Guid.NewGuid(), new Metadata(metadata.TraceId, metadata.UserId), new RegistrationEmailSent(identity.Id, data.EmailId)));
+        await _messageStore.WriteAsync(
+            @event.Metadata.OriginStreamName!,
+            new Metadata(@event.Metadata.TraceId, @event.Metadata.UserId),
+            new RegistrationEmailSent(identity.Id, @event.Data.EmailId));
     }
 }

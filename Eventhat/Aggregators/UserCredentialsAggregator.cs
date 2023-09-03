@@ -1,5 +1,4 @@
 using Eventhat.Database;
-using Eventhat.Helpers;
 using Eventhat.InfraStructure;
 using Eventhat.Messages.Events;
 
@@ -29,9 +28,8 @@ public class UserCredentialsAggregator : IAgent
         _subscription.Stop();
     }
 
-    public async Task RegisteredAsync(MessageEntity message)
+    public async Task RegisteredAsync(Message<Registered> message)
     {
-        var data = message.Data.Deserialize<Registered>();
-        await _db.InsertUserCredentialAsync(data.UserId, data.Email, data.PasswordHash);
+        await _db.InsertUserCredentialAsync(message.Data.UserId, message.Data.Email, message.Data.PasswordHash);
     }
 }

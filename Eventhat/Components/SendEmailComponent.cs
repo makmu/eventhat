@@ -1,5 +1,3 @@
-using Eventhat.Database;
-using Eventhat.Helpers;
 using Eventhat.InfraStructure;
 using Eventhat.Mail;
 using Eventhat.Messages.Commands;
@@ -37,13 +35,13 @@ public class SendEmailComponent : IAgent
         _subscription.Stop();
     }
 
-    private async Task SendEmailAsync(MessageEntity command)
+    private async Task SendEmailAsync(Message<Send> command)
     {
         try
         {
-            var email = await LoadEmailAsync(command);
+            var email = await LoadEmailAsync(command.Data.EmailId);
             EnsureEmailHasNotBeenSent(email);
-            await SendAsync(command);
+            await SendAsync(command.Data);
             await WriteSentEventAsync(command);
         }
         catch (AlreadySentException)
@@ -56,32 +54,24 @@ public class SendEmailComponent : IAgent
         }
     }
 
-    private async Task WriteFailedEventAsync(MessageEntity command, SendException exception)
+    private async Task WriteFailedEventAsync(Message<Send> command, SendException exception)
     {
-        var data = command.Data.Deserialize<Send>();
-        var metadata = command.Metadata.Deserialize<Metadata>();
-
-        var streamName = $"sendEmail-{data.EmailId}";
-
-        await _messageStore.WriteAsync(streamName,
-            new Message<Failed>(Guid.NewGuid(), new Metadata(metadata.TraceId, metadata.UserId, metadata.OriginStreamName),
-                new Failed(data.EmailId, data.To, data.Subject, data.Text, data.Html, exception.Message)));
+        await _messageStore.WriteAsync(
+            $"sendEmail-{command.Data.EmailId}",
+            new Metadata(command.Metadata.TraceId, command.Metadata.UserId, command.Metadata.OriginStreamName),
+            new Failed(command.Data.EmailId, command.Data.To, command.Data.Subject, command.Data.Text, command.Data.Html, exception.Message));
     }
 
-    private async Task WriteSentEventAsync(MessageEntity command)
+    private async Task WriteSentEventAsync(Message<Send> command)
     {
-        var data = command.Data.Deserialize<Send>();
-        var metadata = command.Metadata.Deserialize<Metadata>();
-
-        var streamName = $"sendEmail-{data.EmailId}";
-
-        await _messageStore.WriteAsync(streamName,
-            new Message<Sent>(Guid.NewGuid(), new Metadata(metadata.TraceId, metadata.UserId, metadata.OriginStreamName), new Sent(data.EmailId, data.To, data.Subject, data.Text, data.Html)));
+        await _messageStore.WriteAsync(
+            $"sendEmail-{command.Data.EmailId}",
+            new Metadata(command.Metadata.TraceId, command.Metadata.UserId, command.Metadata.OriginStreamName),
+            new Sent(command.Data.EmailId, command.Data.To, command.Data.Subject, command.Data.Text, command.Data.Html));
     }
 
-    private async Task SendAsync(MessageEntity sendCommand)
+    private async Task SendAsync(Send data)
     {
-        var data = sendCommand.Data.Deserialize<Send>();
         await _mailer.JustSendItAsync(_systemSenderEmailAddress, data.To, data.Subject, data.Text, data.Html);
     }
 
@@ -90,10 +80,9 @@ public class SendEmailComponent : IAgent
         if (email.IsSent) throw new AlreadySentException();
     }
 
-    private async Task<Email> LoadEmailAsync(MessageEntity messageEntity)
+    private async Task<Email> LoadEmailAsync(Guid emailId)
     {
-        var command = messageEntity.Data.Deserialize<Send>();
         var emailProjection = new Email.Projection();
-        return await _messageStore.FetchAsync($"sendEmail-{command.EmailId}", emailProjection.AsDictionary());
+        return await _messageStore.FetchAsync($"sendEmail-{emailId}", emailProjection.AsDictionary());
     }
 }

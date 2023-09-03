@@ -30,15 +30,13 @@ public class CreatorsVideosAggregator : IAgent
         _subscription.Stop();
     }
 
-    private async Task VideoPublishedAsync(MessageEntity message)
+    private async Task VideoPublishedAsync(Message<VideoPublished> message)
     {
-        var data = message.Data.Deserialize<VideoPublished>();
-        await _db.InsertCreatorsVideoAsync(data.VideoId, data.TranscodedUri, message.Position);
+        await _db.InsertCreatorsVideoAsync(message.Data.VideoId, message.Data.TranscodedUri, message.Position);
     }
 
-    public async Task VideoNamedAsync(MessageEntity message)
+    public async Task VideoNamedAsync(Message<VideoNamed> message)
     {
-        var data = message.Data.Deserialize<VideoNamed>();
-        await _db.UpdateCreatorsVideoAsync(message.StreamName.ToId(), data.Name, message.Position);
+        await _db.UpdateCreatorsVideoAsync(message.StreamName.ToId(), message.Data.Name, message.Position);
     }
 }

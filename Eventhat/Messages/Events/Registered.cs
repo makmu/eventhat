@@ -1,6 +1,6 @@
 namespace Eventhat.Messages.Events;
 
-internal class Registered
+public class Registered
 {
     public Registered(Guid userId, string email, string passwordHash)
     {

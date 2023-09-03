@@ -24,11 +24,14 @@ public class RecordViewingsController : ControllerBase
         // TODO: get user id from request
         var userId = Guid.NewGuid();
 
-        var viewedEvent = new Message<VideoViewed>(Guid.NewGuid(), new Metadata(tranceId, userId), new VideoViewed(userId, videoId));
 
         // TODO: get expected version
         var expectedVersion = 0;
-        await _messageStore.WriteAsync($"viewing-{videoId}", viewedEvent, expectedVersion);
+        await _messageStore.WriteAsync(
+            $"viewing-{videoId}",
+            new Metadata(tranceId, userId),
+            new VideoViewed(userId, videoId),
+            expectedVersion);
 
         return Accepted();
     }

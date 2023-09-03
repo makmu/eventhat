@@ -35,7 +35,7 @@ public class HomePageAggregator : IAgent
         await EnsureHomepage();
     }
 
-    public async Task VideoViewedAsync(MessageEntity message)
+    public async Task VideoViewedAsync(Message<VideoViewed> message)
     {
         await IncrementVideosWatchedAsync(message.GlobalPosition);
     }

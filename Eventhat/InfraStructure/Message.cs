@@ -2,16 +2,22 @@ namespace Eventhat.InfraStructure;
 
 public class Message<TData>
 {
-    public Message(Guid id, Metadata meta, TData data)
+    public Message(Guid id, string streamName, Metadata metadata, TData data, int position, int globalPosition)
     {
         Id = id;
+        StreamName = streamName;
+        Metadata = metadata;
         Data = data;
-        Meta = meta;
+        Position = position;
+        GlobalPosition = globalPosition;
     }
 
     public Guid Id { get; }
+    public string StreamName { get; }
+    public Metadata Metadata { get; }
     public TData Data { get; }
-    public Metadata Meta { get; }
+    public int GlobalPosition { get; }
+    public int Position { get; }
 }
 
 public class Metadata

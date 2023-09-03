@@ -65,8 +65,10 @@ public class MessageSubscription
 
     public async Task WritePosition(int position)
     {
-        await _messageStore.WriteAsync(_subscriberStreamName,
-            new Message<StreamRead>(Guid.NewGuid(), new Metadata(Guid.Empty, Guid.Empty), new StreamRead(position)));
+        await _messageStore.WriteAsync(
+            _subscriberStreamName,
+            new Metadata(Guid.Empty, Guid.Empty),
+            new StreamRead(position));
     }
 
     public async Task<IEnumerable<MessageEntity>> GetNextBatchOfMessages()
@@ -129,15 +131,15 @@ public class MessageSubscription
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Error processing batch: {e.Message}");
+            Console.WriteLine($"Error processing batch: {e.Message} {e.StackTrace}");
             Stop();
             return 0;
         }
     }
 
-    public void RegisterHandler<T>(Func<MessageEntity, Task> handler)
+    public void RegisterHandler<T>(Func<Message<T>, Task> handler)
     {
-        _handlers.Add(typeof(T), handler);
+        _handlers.Add(typeof(T), x => handler(new Message<T>(x.Id, x.StreamName, x.Metadata.Deserialize<Metadata>(), x.Data.Deserialize<T>(), x.Position, x.GlobalPosition)));
     }
 }
 

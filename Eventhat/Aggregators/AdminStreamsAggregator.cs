@@ -27,7 +27,7 @@ public class AdminStreamsAggregator : IAgent
         _subscription.Stop();
     }
 
-    private async Task AnyMessageAsync(MessageEntity message)
+    private async Task AnyMessageAsync(Message<object> message)
     {
         await _db.UpsertStream(message.StreamName, message.Id, message.GlobalPosition);
     }

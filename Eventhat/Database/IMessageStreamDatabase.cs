@@ -11,7 +11,7 @@ public interface IMessageStreamDatabase
     IQueryable<AdminUser> AdminUsers { get; }
     IQueryable<MessageEntity> Messages { get; }
     IQueryable<AdminStream> AdminStreams { get; }
-    Task WriteMessageAsync(Guid id, string streamName, string type, string data, string metadata, int? expectedVersion);
+    Task WriteMessageAsync(Guid id, string streamName, string type, string metadata, string data, int? expectedVersion);
     Task<IEnumerable<MessageEntity>> GetCategoryMessages(string streamName, int fromPosition, int batchSize);
 
     Task<MessageEntity?> GetLastStreamMessage(string streamName);

@@ -27,9 +27,9 @@ public class CreatorsPortalController : ControllerBase
         // TODO: get user id from request
         var userId = Guid.NewGuid();
 
-        var publishVideo = new Message<PublishVideo>(Guid.NewGuid(), new Metadata(tranceId, userId), new PublishVideo(videoPublishing.VideoId, videoPublishing.OwnerId, videoPublishing.SourceUri));
+        var publishVideo = new PublishVideo(videoPublishing.VideoId, videoPublishing.OwnerId, videoPublishing.SourceUri);
 
-        await _messageStore.WriteAsync($"videoPublishing:command-{videoPublishing.VideoId}", publishVideo, 0);
+        await _messageStore.WriteAsync($"videoPublishing:command-{videoPublishing.VideoId}", new Metadata(tranceId, userId), publishVideo, 0);
 
         return Accepted();
     }
@@ -42,9 +42,9 @@ public class CreatorsPortalController : ControllerBase
         // TODO: get user id from request
         var userId = Guid.NewGuid();
 
-        var publishVideo = new Message<NameVideo>(Guid.NewGuid(), new Metadata(tranceId, userId), new NameVideo(videoId, name));
+        var publishVideo = new NameVideo(videoId, name);
 
-        await _messageStore.WriteAsync($"videoPublishing:command-{videoId}", publishVideo);
+        await _messageStore.WriteAsync($"videoPublishing:command-{videoId}", new Metadata(tranceId, userId), publishVideo);
 
         return Accepted(tranceId);
     }

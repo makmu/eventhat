@@ -27,9 +27,9 @@ public class MessageStore
         return await _db.GetLastStreamMessage(streamName);
     }
 
-    public async Task WriteAsync<T>(string streamName, Message<T> message, int? expectedVersion = null)
+    public async Task WriteAsync<T>(string streamName, Metadata metadata, T data, int? expectedVersion = null)
     {
-        await _db.WriteMessageAsync(message.Id, streamName, typeof(T).ToString(), JsonSerializer.Serialize(message.Data), JsonSerializer.Serialize(message.Meta), expectedVersion);
+        await _db.WriteMessageAsync(Guid.NewGuid(), streamName, typeof(T).ToString(), JsonSerializer.Serialize(metadata), JsonSerializer.Serialize(data), expectedVersion);
     }
 
     public async Task<T> FetchAsync<T>(string streamName, Dictionary<Type, Func<T, MessageEntity, T>> projection) where T : new()

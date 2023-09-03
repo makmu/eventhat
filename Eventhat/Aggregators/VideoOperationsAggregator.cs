@@ -30,16 +30,13 @@ public class VideoOperationsAggregator : IAgent
         _subscription.Stop();
     }
 
-    private async Task VideoNameRejectedAsync(MessageEntity message)
+    private async Task VideoNameRejectedAsync(Message<VideoNameRejected> message)
     {
-        var data = message.Data.Deserialize<VideoNameRejected>();
-        var metadata = message.Metadata.Deserialize<Metadata>();
-        await _db.InsertVideoOperationAsync(metadata.TraceId, message.StreamName.ToId(), false, data.Reason);
+        await _db.InsertVideoOperationAsync(message.Metadata.TraceId, message.StreamName.ToId(), false, message.Data.Reason);
     }
 
-    public async Task VideoNamedAsync(MessageEntity message)
+    public async Task VideoNamedAsync(Message<VideoNamed> message)
     {
-        var metadata = message.Metadata.Deserialize<Metadata>();
-        await _db.InsertVideoOperationAsync(metadata.TraceId, message.StreamName.ToId(), true, string.Empty);
+        await _db.InsertVideoOperationAsync(message.Metadata.TraceId, message.StreamName.ToId(), true, string.Empty);
     }
 }

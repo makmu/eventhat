@@ -1,5 +1,4 @@
 using Eventhat.Database;
-using Eventhat.Helpers;
 using Eventhat.InfraStructure;
 using Eventhat.Messages.Events;
 
@@ -38,33 +37,23 @@ public class AdminUsersAggregator : IAgent
         _authenticationSubscription.Stop();
     }
 
-    private async Task RegistrationEmailSentAsync(MessageEntity message)
+    private async Task RegistrationEmailSentAsync(Message<RegistrationEmailSent> message)
     {
-        var data = message.Data.Deserialize<RegistrationEmailSent>();
-        await _db.InsertAdminUsersAsync(data.IdentityId);
-        await _db.MarkRegistrationEmailSent(data.IdentityId, message.GlobalPosition);
+        await _db.InsertAdminUsersAsync(message.Data.IdentityId);
+        await _db.MarkRegistrationEmailSent(message.Data.IdentityId, message.GlobalPosition);
     }
 
-    private async Task RegisteredAsync(MessageEntity message)
+    private async Task RegisteredAsync(Message<Registered> message)
     {
-        var data = message.Data.Deserialize<Registered>();
-        await _db.InsertAdminUsersAsync(data.UserId);
+        await _db.InsertAdminUsersAsync(message.Data.UserId);
 
-        await _db.SetAdminUserEmail(data.UserId, data.Email, message.GlobalPosition);
+        await _db.SetAdminUserEmail(message.Data.UserId, message.Data.Email, message.GlobalPosition);
     }
 
-    private async Task UserLoggedInAsync(MessageEntity message)
+    private async Task UserLoggedInAsync(Message<UserLoggedIn> message)
     {
-        var data = message.Data.Deserialize<UserLoggedIn>();
-        await _db.InsertAdminUsersAsync(data.UserId);
+        await _db.InsertAdminUsersAsync(message.Data.UserId);
 
-        await _db.IncreaseAdminUserLoginCount(data.UserId, message.GlobalPosition);
-    }
-
-
-    public async Task VideoNamedAsync(MessageEntity message)
-    {
-        var metadata = message.Metadata.Deserialize<Metadata>();
-        await _db.InsertVideoOperationAsync(metadata.TraceId, message.StreamName.ToId(), true, string.Empty);
+        await _db.IncreaseAdminUserLoginCount(message.Data.UserId, message.GlobalPosition);
     }
 }

@@ -70,7 +70,7 @@ public class InMemoryMessageStreamDatabase : IMessageStreamDatabase
         }
     }
 
-    public Task WriteMessageAsync(Guid id, string streamName, string type, string data, string metadata, int? expectedVersion)
+    public Task WriteMessageAsync(Guid id, string streamName, string type, string metadata, string data, int? expectedVersion)
     {
         lock (_messagesTable)
         {

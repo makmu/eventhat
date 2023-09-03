@@ -70,16 +70,18 @@ public class AuthenticateController : ControllerBase
 
     private async Task HandleCredentialMismatchAsync(Guid traceId, Guid userId)
     {
-        var userLoginFailedEvent = new Message<UserLoginFailed>(Guid.NewGuid(), new Metadata(traceId, userId), new UserLoginFailed(userId, "Incorrect password"));
-        var streamName = $"authentication-{userId}";
-        await _messageStore.WriteAsync(streamName, userLoginFailedEvent);
+        await _messageStore.WriteAsync(
+            $"authentication-{userId}",
+            new Metadata(traceId, userId),
+            new UserLoginFailed(userId, "Incorrect password"));
     }
 
     private async Task WriteLoggedInEventAsync(Guid traceId, Guid userId)
     {
-        var userLoggedInEvent = new Message<UserLoggedIn>(Guid.NewGuid(), new Metadata(traceId, userId), new UserLoggedIn(userId));
-        var streamName = $"authentication-{userId}";
-        await _messageStore.WriteAsync(streamName, userLoggedInEvent);
+        await _messageStore.WriteAsync(
+            $"authentication-{userId}",
+            new Metadata(traceId, userId),
+            new UserLoggedIn(userId));
     }
 
     private void ValidatePassword(Guid userId, string providedPassword, string storedPasswordHash)

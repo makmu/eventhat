@@ -51,10 +51,10 @@ public class RegisterUsersController : ControllerBase
 
     private async Task WriteRegisterCommandAsync(Guid traceId, Guid userId, string email, string passwordHash)
     {
-        var stream = $"identity:command-{userId}";
-        var command = new Message<Register>(Guid.NewGuid(), new Metadata(traceId, userId), new Register(userId, email, passwordHash));
-
-        await _messageStore.WriteAsync(stream, command);
+        await _messageStore.WriteAsync(
+            $"identity:command-{userId}",
+            new Metadata(traceId, userId),
+            new Register(userId, email, passwordHash));
     }
 
     private string HashPassword(UserAttributesDto attributes)
