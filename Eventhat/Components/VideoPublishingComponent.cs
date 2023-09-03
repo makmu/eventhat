@@ -128,7 +128,6 @@ public class VideoPublishingComponent : IAgent
 
     private async Task<Video> LoadVideoAsync(Guid videoId)
     {
-        var videoProjection = new Video.Projection();
-        return await _messageStore.FetchAsync($"videoPublishing-{videoId}", videoProjection.AsDictionary());
+        return await _messageStore.FetchAsync<Video>($"videoPublishing-{videoId}");
     }
 }

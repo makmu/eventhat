@@ -56,8 +56,7 @@ public class IdentityComponent : IAgent
 
     private async Task<Identity> LoadIdentityAsync(Guid identityId)
     {
-        var identityProjection = new Identity.Projection();
-        return await _messageStore.FetchAsync($"identity-{identityId}", identityProjection.AsDictionary());
+        return await _messageStore.FetchAsync<Identity>($"identity-{identityId}");
     }
 
 

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Eventhat.Database;
+using Eventhat.Projections;
 
 namespace Eventhat.InfraStructure;
 
@@ -32,20 +33,13 @@ public class MessageStore
         await _db.WriteMessageAsync(Guid.NewGuid(), streamName, typeof(T).ToString(), JsonSerializer.Serialize(metadata), JsonSerializer.Serialize(data), expectedVersion);
     }
 
-    public async Task<T> FetchAsync<T>(string streamName, Dictionary<Type, Func<T, MessageEntity, T>> projection) where T : new()
+    public async Task<T> FetchAsync<T>(string streamName) where T : ProjectionBase, new()
     {
         var messages = await ReadAsync(streamName);
-        return ProjectAsync(messages, projection);
-    }
+        var projection = new T();
+        foreach (var message in messages) projection.ApplyEvent(message.Type, message.Id, message.StreamName, message.Metadata, message.Data, message.Position, message.GlobalPosition);
 
-    private T ProjectAsync<T>(IEnumerable<MessageEntity> messages, Dictionary<Type, Func<T, MessageEntity, T>> projection) where T : new()
-    {
-        return messages.Aggregate(new T(), (entity, @event) =>
-        {
-            if (projection.TryGetValue(Type.GetType(@event.Type) ?? throw new InvalidOperationException($"unknown message type {@event.Type}"), out var p)) return p(entity, @event);
-
-            return entity;
-        });
+        return projection;
     }
 
     public MessageSubscription CreateSubscription(

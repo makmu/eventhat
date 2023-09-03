@@ -1,23 +1,19 @@
-using Eventhat.Database;
+using Eventhat.InfraStructure;
 using Eventhat.Messages.Events;
 
 namespace Eventhat.Projections;
 
-public class Email
+public class Email : ProjectionBase
 {
-    public bool IsSent { get; set; }
-
-    public class Projection
+    public Email()
     {
-        public Dictionary<Type, Func<Email, MessageEntity, Email>> AsDictionary()
-        {
-            return new Dictionary<Type, Func<Email, MessageEntity, Email>> { { typeof(Sent), Sent } };
-        }
+        RegisterEvenHandler<Sent>(ApplySent);
+    }
 
-        private Email Sent(Email email, MessageEntity message)
-        {
-            email.IsSent = true;
-            return email;
-        }
+    public bool IsSent { get; private set; }
+
+    private void ApplySent(Message<Sent> message)
+    {
+        IsSent = true;
     }
 }

@@ -1,11 +1,18 @@
-using Eventhat.Database;
-using Eventhat.Helpers;
+using Eventhat.InfraStructure;
 using Eventhat.Messages.Events;
 
 namespace Eventhat.Projections;
 
-public class Video
+public class Video : ProjectionBase
 {
+    public Video()
+    {
+        RegisterEvenHandler<VideoPublished>(VideoPublished);
+        RegisterEvenHandler<VideoPublishingFailed>(VideoPublishingFailed);
+        RegisterEvenHandler<VideoNamed>(VideoNamed);
+        RegisterEvenHandler<VideoNameRejected>(VideoNameRejected);
+    }
+
     public Guid Id { get; set; }
     public bool PublishingAttempted { get; set; }
     public Uri? SourceUri { get; set; }
@@ -17,55 +24,31 @@ public class Video
 
     public int Sequence { get; set; }
 
-    public class Projection
+    private void VideoNamed(Message<VideoNamed> message)
     {
-        public Dictionary<Type, Func<Video, MessageEntity, Video>> AsDictionary()
-        {
-            return new Dictionary<Type, Func<Video, MessageEntity, Video>>
-            {
-                { typeof(VideoPublished), VideoPublished },
-                { typeof(VideoPublishingFailed), VideoPublishingFailed },
-                { typeof(VideoNamed), VideoNamed },
-                { typeof(VideoNameRejected), VideoNameRejected }
-            };
-        }
+        Sequence = message.GlobalPosition;
+        Name = message.Data.Name;
+    }
 
-        private Video VideoNamed(Video video, MessageEntity message)
-        {
-            var data = message.Data.Deserialize<VideoNamed>();
-            video.Sequence = message.GlobalPosition;
-            video.Name = data.Name;
+    private void VideoNameRejected(Message<VideoNameRejected> message)
+    {
+        Sequence = message.GlobalPosition;
+    }
 
-            return video;
-        }
+    private void VideoPublished(Message<VideoPublished> message)
+    {
+        Id = message.Data.VideoId;
+        PublishingAttempted = true;
+        OwnerId = message.Data.OwnerId;
+        SourceUri = message.Data.SourceUri;
+        TranscodedUri = message.Data.TranscodedUri;
+    }
 
-        private Video VideoNameRejected(Video video, MessageEntity message)
-        {
-            video.Sequence = message.GlobalPosition;
-
-            return video;
-        }
-
-        private Video VideoPublished(Video video, MessageEntity message)
-        {
-            var data = message.Data.Deserialize<VideoPublished>();
-            video.Id = data.VideoId;
-            video.PublishingAttempted = true;
-            video.OwnerId = data.OwnerId;
-            video.SourceUri = data.SourceUri;
-            video.TranscodedUri = data.TranscodedUri;
-            return video;
-        }
-
-        public Video VideoPublishingFailed(Video video, MessageEntity message)
-        {
-            var data = message.Data.Deserialize<VideoPublishingFailed>();
-            video.Id = data.VideoId;
-            video.PublishingAttempted = true;
-            video.OwnerId = data.OwnerId;
-            video.SourceUri = data.SourceUri;
-
-            return video;
-        }
+    public void VideoPublishingFailed(Message<VideoPublishingFailed> message)
+    {
+        Id = message.Data.VideoId;
+        PublishingAttempted = true;
+        OwnerId = message.Data.OwnerId;
+        SourceUri = message.Data.SourceUri;
     }
 }

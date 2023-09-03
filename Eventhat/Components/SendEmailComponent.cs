@@ -82,7 +82,6 @@ public class SendEmailComponent : IAgent
 
     private async Task<Email> LoadEmailAsync(Guid emailId)
     {
-        var emailProjection = new Email.Projection();
-        return await _messageStore.FetchAsync($"sendEmail-{emailId}", emailProjection.AsDictionary());
+        return await _messageStore.FetchAsync<Email>($"sendEmail-{emailId}");
     }
 }
