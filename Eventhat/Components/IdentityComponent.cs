@@ -97,7 +97,7 @@ public class IdentityComponent : IAgent
             var (to, subject, text, html) = RenderRegistrationEmail(identity);
             await WriteSendCommandAsync(@event, identity, to, subject, text, html);
         }
-        catch (AlreadySentRegistrationEmailException e)
+        catch (AlreadySentRegistrationEmailException)
         {
             // to nothing
         }

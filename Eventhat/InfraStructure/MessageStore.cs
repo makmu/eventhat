@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Eventhat.Database;
+using Eventhat.Helpers;
 using Eventhat.Projections;
 
 namespace Eventhat.InfraStructure;
@@ -7,6 +8,7 @@ namespace Eventhat.InfraStructure;
 public class MessageStore
 {
     private readonly IMessageStreamDatabase _db;
+    private readonly Dictionary<string, List<MessageSubscription>> _subscriptions = new();
 
     public MessageStore(IMessageStreamDatabase db)
     {
@@ -30,7 +32,16 @@ public class MessageStore
 
     public async Task WriteAsync<T>(string streamName, Metadata metadata, T data, int? expectedVersion = null)
     {
+        var messageId = Guid.NewGuid();
         await _db.WriteMessageAsync(Guid.NewGuid(), streamName, typeof(T).ToString(), JsonSerializer.Serialize(metadata), JsonSerializer.Serialize(data), expectedVersion);
+
+        if (_subscriptions.TryGetValue(streamName.GetCategory(), out var categorySubscriptions))
+            foreach (var subscription in categorySubscriptions)
+                subscription.PushLastMessageId(messageId);
+
+        if (_subscriptions.TryGetValue("$all", out var broadcastSubscriptions))
+            foreach (var subscription in broadcastSubscriptions)
+                subscription.PushLastMessageId(messageId);
     }
 
     public async Task<T> FetchAsync<T>(string streamName) where T : ProjectionBase, new()
@@ -43,13 +54,19 @@ public class MessageStore
     }
 
     public MessageSubscription CreateSubscription(
-        string streamName,
+        string streamCategoryName,
         string subscriberId,
         string? originStreamName = null,
         int messagesPerTick = 100,
         int positionUpdateInterval = 100,
         int tickIntervalMs = 100)
     {
-        return new MessageSubscription(this, streamName, subscriberId, originStreamName, messagesPerTick, positionUpdateInterval, tickIntervalMs);
+        if (streamCategoryName.Contains('-')) throw new ArgumentException($"invalid stream name {streamCategoryName}: only subscriptions to category are allowed", nameof(streamCategoryName));
+
+        if (!_subscriptions.ContainsKey(streamCategoryName)) _subscriptions.Add(streamCategoryName, new List<MessageSubscription>());
+
+        var subscription = new MessageSubscription(this, streamCategoryName, subscriberId, originStreamName, messagesPerTick, positionUpdateInterval, tickIntervalMs);
+        _subscriptions[streamCategoryName].Add(subscription);
+        return subscription;
     }
 }

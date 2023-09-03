@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using Eventhat.Database;
 using Eventhat.Helpers;
@@ -7,6 +8,7 @@ namespace Eventhat.InfraStructure;
 public class MessageSubscription
 {
     private readonly Dictionary<Type, Func<MessageEntity, Task>> _handlers = new();
+    private readonly ConcurrentQueue<Guid> _messageQueue = new();
     private readonly int _messagesPerTick;
     private readonly MessageStore _messageStore;
     private readonly string? _originStreamName;
@@ -50,6 +52,7 @@ public class MessageSubscription
         if (updated == null) throw new Exception($"Invalid subscriber position update message for subscriber stream '{_subscriberStreamName}'");
 
         _currentPosition = updated.Position;
+        _messageQueue.Enqueue(lastMessage.Id);
     }
 
     public async Task UpdateReadPosition(int position)
@@ -112,14 +115,25 @@ public class MessageSubscription
         _keepGoing = false;
     }
 
+    public void PushLastMessageId(Guid messageId)
+    {
+        _messageQueue.Enqueue(messageId);
+    }
+
     private async Task PollAsync()
     {
         await LoadPosition();
 
         while (_keepGoing)
         {
-            var messagesProcessed = await TickAsync();
-            if (messagesProcessed == 0) await Task.Delay(_tickIntervalMs);
+            var nothingToDo = true;
+            if (_messageQueue.TryDequeue(out _))
+            {
+                var messagesProcessed = await TickAsync();
+                if (messagesProcessed != 0) nothingToDo = false;
+            }
+
+            if (nothingToDo) await Task.Delay(_tickIntervalMs);
         }
     }
 
