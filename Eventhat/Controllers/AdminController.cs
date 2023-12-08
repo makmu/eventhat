@@ -42,7 +42,7 @@ public class AdminController : ControllerBase
             Ok(
                 _db.Messages
                     .OrderBy(m => m.GlobalPosition)
-                    .Select(m => new MessageDto(m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Type, m.Time)
+                    .Select(m => new MessageDto(m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Type, m.Position, m.GlobalPosition, m.Time, m.Data)
                     )));
     }
 
@@ -54,7 +54,7 @@ public class AdminController : ControllerBase
                 _db.Messages
                     .Where(m => m.StreamName == streamName)
                     .OrderBy(m => m.GlobalPosition)
-                    .Select(m => new MessageDto(m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Type, m.Time)
+                    .Select(m => new MessageDto(m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Type, m.Position, m.GlobalPosition, m.Time, m.Data)
                     )));
     }
 
@@ -66,7 +66,7 @@ public class AdminController : ControllerBase
                 _db.Messages
                     .Where(m => m.Metadata.Deserialize<Metadata>().TraceId == correlationId)
                     .OrderBy(m => m.GlobalPosition)
-                    .Select(m => new MessageDto(m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Type, m.Time)
+                    .Select(m => new MessageDto(m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Type,m.Position, m.GlobalPosition,  m.Time, m.Data)
                     )));
     }
 
@@ -95,14 +95,17 @@ public class AdminController : ControllerBase
 
     public class MessageDto
     {
-        public MessageDto(Guid id, Guid correlationId, Guid userId, string stream, string type, DateTimeOffset timestamp)
+        public MessageDto(Guid id, Guid correlationId, Guid userId, string stream, string type, int position, int globalPosition, DateTimeOffset timestamp, string data)
         {
             Id = id;
             CorrelationId = correlationId;
             UserId = userId;
             Stream = stream;
             Type = type;
+            Position = position;
+            GlobalPosition = globalPosition;
             Timestamp = timestamp;
+            Data = data;
         }
 
         public Guid Id { get; }
@@ -110,6 +113,9 @@ public class AdminController : ControllerBase
         public Guid UserId { get; }
         public string Stream { get; }
         public string Type { get; }
+        public int Position { get; }
+        public int GlobalPosition { get; }
+        public string Data { get; }
         public DateTimeOffset Timestamp { get; }
     }
 
