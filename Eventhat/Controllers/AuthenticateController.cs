@@ -16,14 +16,14 @@ namespace Eventhat.Controllers;
 [Route("/auth")]
 public class AuthenticateController : ControllerBase
 {
-    private readonly IMessageStreamDatabase _db;
     private readonly MessageStore _messageStore;
+    private readonly ViewDataContext _viewData;
 
     public AuthenticateController(
-        IMessageStreamDatabase db,
+        ViewDataContext viewData,
         MessageStore messageStore)
     {
-        _db = db;
+        _viewData = viewData;
         _messageStore = messageStore;
     }
 
@@ -96,6 +96,6 @@ public class AuthenticateController : ControllerBase
 
     private async Task<UserCredentials?> LoadUserCredentialAsync(string email)
     {
-        return await _db.UserCredentials.ByEmailAsync(email);
+        return await _viewData.UserCredentials.ByEmailAsync(email);
     }
 }

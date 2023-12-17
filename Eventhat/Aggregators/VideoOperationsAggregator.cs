@@ -1,18 +1,20 @@
 using Eventhat.Database;
+using Eventhat.Database.Entities;
 using Eventhat.Helpers;
 using Eventhat.InfraStructure;
 using Eventhat.Messages.Events;
+using Microsoft.EntityFrameworkCore;
 
 namespace Eventhat.Aggregators;
 
 public class VideoOperationsAggregator : IAgent
 {
-    private readonly IMessageStreamDatabase _db;
     private readonly MessageSubscription _subscription;
+    private readonly IDbContextFactory<ViewDataContext> _viewDataDb;
 
-    public VideoOperationsAggregator(IMessageStreamDatabase db, MessageStore messageStore)
+    public VideoOperationsAggregator(IDbContextFactory<ViewDataContext> viewDataDb, MessageStore messageStore)
     {
-        _db = db;
+        _viewDataDb = viewDataDb;
         _subscription = messageStore.CreateSubscription(
             "videoPublishing",
             "aggregators:video-operations");
@@ -32,11 +34,33 @@ public class VideoOperationsAggregator : IAgent
 
     private async Task VideoNameRejectedAsync(Message<VideoNameRejected> message)
     {
-        await _db.InsertVideoOperationAsync(message.Metadata.TraceId, message.StreamName.ToId(), false, message.Data.Reason);
+        using var viewData = _viewDataDb.CreateDbContext();
+        if (viewData.VideoOperations.All(x => x.TraceId != message.Metadata.TraceId))
+        {
+            await viewData.VideoOperations.AddAsync(new VideoOperation
+            {
+                TraceId = message.Metadata.TraceId,
+                VideoId = message.StreamName.ToId(),
+                Succeeded = false,
+                FailureReason = message.Data.Reason
+            });
+            await viewData.SaveChangesAsync();
+        }
     }
 
-    public async Task VideoNamedAsync(Message<VideoNamed> message)
+    private async Task VideoNamedAsync(Message<VideoNamed> message)
     {
-        await _db.InsertVideoOperationAsync(message.Metadata.TraceId, message.StreamName.ToId(), true, string.Empty);
+        using var viewData = _viewDataDb.CreateDbContext();
+        if (viewData.VideoOperations.All(x => x.TraceId != message.Metadata.TraceId))
+        {
+            await viewData.VideoOperations.AddAsync(new VideoOperation
+            {
+                TraceId = message.Metadata.TraceId,
+                VideoId = message.StreamName.ToId(),
+                Succeeded = true,
+                FailureReason = string.Empty
+            });
+            await viewData.SaveChangesAsync();
+        }
     }
 }

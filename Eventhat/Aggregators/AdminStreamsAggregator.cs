@@ -1,16 +1,18 @@
 using Eventhat.Database;
+using Eventhat.Database.Entities;
 using Eventhat.InfraStructure;
+using Microsoft.EntityFrameworkCore;
 
 namespace Eventhat.Aggregators;
 
 public class AdminStreamsAggregator : IAgent
 {
-    private readonly IMessageStreamDatabase _db;
     private readonly MessageSubscription _subscription;
+    private readonly IDbContextFactory<ViewDataContext> _viewDataDb;
 
-    public AdminStreamsAggregator(IMessageStreamDatabase db, MessageStore messageStore)
+    public AdminStreamsAggregator(IDbContextFactory<ViewDataContext> viewDataDb, MessageStore messageStore)
     {
-        _db = db;
+        _viewDataDb = viewDataDb;
         _subscription = messageStore.CreateSubscription(
             "$all",
             "aggregators:admin-streams");
@@ -29,6 +31,24 @@ public class AdminStreamsAggregator : IAgent
 
     private async Task AnyMessageAsync(Message<object> message)
     {
-        await _db.UpsertStream(message.StreamName, message.Id, message.GlobalPosition);
+        using var viewData = _viewDataDb.CreateDbContext();
+        var existingStream = viewData.AdminStreams.SingleOrDefault(s => s.StreamName == message.StreamName);
+        if (existingStream == null)
+        {
+            viewData.AdminStreams.Add(new AdminStream
+            {
+                StreamName = message.StreamName,
+                MessageCount = 1,
+                LastMessageId = message.Id,
+                LastMessageGlobalPosition = message.GlobalPosition
+            });
+        }
+        else if (existingStream.LastMessageGlobalPosition < message.GlobalPosition)
+        {
+            existingStream.MessageCount++;
+            existingStream.LastMessageGlobalPosition = message.GlobalPosition;
+        }
+
+        await viewData.SaveChangesAsync();
     }
 }

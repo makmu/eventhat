@@ -2,38 +2,72 @@ using System.Text.Json;
 using Eventhat.Database;
 using Eventhat.Helpers;
 using Eventhat.Projections;
+using Microsoft.EntityFrameworkCore;
 
 namespace Eventhat.InfraStructure;
 
 public class MessageStore
 {
-    private readonly IMessageStreamDatabase _db;
+    private readonly IDbContextFactory<MessageContext> _messageDbContextDb;
     private readonly Dictionary<string, List<MessageSubscription>> _subscriptions = new();
 
-    public MessageStore(IMessageStreamDatabase db)
+    public MessageStore(IDbContextFactory<MessageContext> messageDbContextDb)
     {
-        _db = db;
+        _messageDbContextDb = messageDbContextDb;
     }
 
-    public async Task<IEnumerable<MessageEntity>> ReadAsync(string streamName, int fromPosition = 0, int batchSize = 1000)
+    public Task<IEnumerable<MessageEntity>> ReadAsync(string streamName, int fromPosition = 0, int batchSize = 1000)
     {
-        if (streamName == "$all") return _db.Messages.OrderBy(m => m.GlobalPosition).Take(new Range(fromPosition, fromPosition + batchSize));
+        using var messageDb = _messageDbContextDb.CreateDbContext();
+
+        if (streamName == "$all")
+            return Task.FromResult<IEnumerable<MessageEntity>>(
+                messageDb.Messages
+                    .OrderBy(m => m.GlobalPosition)
+                    .Skip(fromPosition - 1)
+                    .Take(batchSize)
+                    .ToList());
 
         if (streamName.Contains('-'))
-            return await _db.GetStreamMessages(streamName, fromPosition, batchSize);
+            return Task.FromResult<IEnumerable<MessageEntity>>(
+                messageDb.Messages
+                    .Where(m => m.StreamName == streamName && m.Position >= fromPosition)
+                    .OrderBy(m => m.Position)
+                    .Take(batchSize)
+                    .ToList());
 
-        return await _db.GetCategoryMessages(streamName, fromPosition, batchSize);
+        return Task.FromResult<IEnumerable<MessageEntity>>(
+            messageDb.Messages
+                .Where(m => m.StreamName.Contains($"{streamName}-") && m.GlobalPosition >= fromPosition)
+                .OrderBy(m => m.GlobalPosition)
+                .Take(batchSize)
+                .ToList());
     }
 
-    public async Task<MessageEntity?> ReadLastMessageAsync(string streamName)
+    public Task<MessageEntity?> ReadLastMessageAsync(string streamName)
     {
-        return await _db.GetLastStreamMessage(streamName);
+        using var messageDb = _messageDbContextDb.CreateDbContext();
+        return Task.FromResult(messageDb.Messages.Where(m => m.StreamName == streamName).ToList().MaxBy(m => m.Position));
     }
 
     public async Task WriteAsync<T>(string streamName, Metadata metadata, T data, int? expectedVersion = null)
     {
+        using var messageDb = _messageDbContextDb.CreateDbContext();
+
         var messageId = Guid.NewGuid();
-        await _db.WriteMessageAsync(Guid.NewGuid(), streamName, typeof(T).ToString(), JsonSerializer.Serialize(metadata), JsonSerializer.Serialize(data), expectedVersion);
+        await messageDb.Messages.AddAsync(
+            new MessageEntity
+            {
+                Id = Guid.NewGuid(),
+                StreamName = streamName,
+                Type = typeof(T).ToString(),
+                Position = expectedVersion ?? default,
+                Data = JsonSerializer.Serialize(data),
+                Metadata = JsonSerializer.Serialize(metadata),
+                Time = DateTimeOffset.Now
+            });
+
+        await messageDb.SaveChangesAsync();
 
         if (_subscriptions.TryGetValue(streamName.GetCategory(), out var categorySubscriptions))
             foreach (var subscription in categorySubscriptions)

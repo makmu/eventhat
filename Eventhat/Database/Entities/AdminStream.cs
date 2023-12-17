@@ -1,17 +1,13 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Eventhat.Database.Entities;
 
 public class AdminStream
 {
-    public AdminStream(string streamName, int messageCount, Guid lastMessageId, int lastMessageGlobalPosition)
-    {
-        StreamName = streamName;
-        MessageCount = messageCount;
-        LastMessageId = lastMessageId;
-        LastMessageGlobalPosition = lastMessageGlobalPosition;
-    }
+    [Key]
+    public string StreamName { get; set; }
 
-    public string StreamName { get; }
-    public int MessageCount { get; }
-    public Guid LastMessageId { get; }
-    public int LastMessageGlobalPosition { get; }
+    public int MessageCount { get; set; }
+    public Guid LastMessageId { get; set; }
+    public int LastMessageGlobalPosition { get; set; }
 }

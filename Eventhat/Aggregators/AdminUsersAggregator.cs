@@ -1,18 +1,20 @@
 using Eventhat.Database;
+using Eventhat.Database.Entities;
 using Eventhat.InfraStructure;
 using Eventhat.Messages.Events;
+using Microsoft.EntityFrameworkCore;
 
 namespace Eventhat.Aggregators;
 
 public class AdminUsersAggregator : IAgent
 {
     private readonly MessageSubscription _authenticationSubscription;
-    private readonly IMessageStreamDatabase _db;
     private readonly MessageSubscription _identitySubscription;
+    private readonly IDbContextFactory<ViewDataContext> _viewDataDb;
 
-    public AdminUsersAggregator(IMessageStreamDatabase db, MessageStore messageStore)
+    public AdminUsersAggregator(IDbContextFactory<ViewDataContext> viewDataDb, MessageStore messageStore)
     {
-        _db = db;
+        _viewDataDb = viewDataDb;
         _identitySubscription = messageStore.CreateSubscription(
             "identity",
             "aggregators:identity:admin-users");
@@ -39,21 +41,39 @@ public class AdminUsersAggregator : IAgent
 
     private async Task RegistrationEmailSentAsync(Message<RegistrationEmailSent> message)
     {
-        await _db.InsertAdminUsersAsync(message.Data.IdentityId);
-        await _db.MarkRegistrationEmailSent(message.Data.IdentityId, message.GlobalPosition);
+        using var viewData = _viewDataDb.CreateDbContext();
+        var admin = viewData.AdminUsers.Single(x => x.Id == message.Data.IdentityId);
+        admin.RegistrationEmailSent = true;
+        admin.LastIdentityEventGlobalPosition = message.GlobalPosition;
+        await viewData.SaveChangesAsync();
     }
 
     private async Task RegisteredAsync(Message<Registered> message)
     {
-        await _db.InsertAdminUsersAsync(message.Data.UserId);
+        using var viewData = _viewDataDb.CreateDbContext();
+        if (viewData.AdminUsers.All(x => x.Id != message.Data.UserId))
+        {
+            await viewData.AdminUsers.AddAsync(new AdminUser
+            {
+                Id = message.Data.UserId,
+                Email = message.Data.Email,
+                RegistrationEmailSent = false,
+                LastIdentityEventGlobalPosition = message.GlobalPosition,
+                LoginCount = 0,
+                LastAuthenticationEventGlobalPosition = 0
+            });
 
-        await _db.SetAdminUserEmail(message.Data.UserId, message.Data.Email, message.GlobalPosition);
+            await viewData.SaveChangesAsync();
+        }
     }
 
     private async Task UserLoggedInAsync(Message<UserLoggedIn> message)
     {
-        await _db.InsertAdminUsersAsync(message.Data.UserId);
+        using var viewData = _viewDataDb.CreateDbContext();
+        var admin = viewData.AdminUsers.Single(x => x.Id == message.Data.UserId);
+        admin.LoginCount++;
+        admin.LastAuthenticationEventGlobalPosition = message.GlobalPosition;
 
-        await _db.IncreaseAdminUserLoginCount(message.Data.UserId, message.GlobalPosition);
+        await viewData.SaveChangesAsync();
     }
 }

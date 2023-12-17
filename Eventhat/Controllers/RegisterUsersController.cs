@@ -13,14 +13,14 @@ namespace Eventhat.Controllers;
 [Route("/register")]
 public class RegisterUsersController : ControllerBase
 {
-    private readonly IMessageStreamDatabase _db;
     private readonly MessageStore _messageStore;
+    private readonly ViewDataContext _viewData;
 
     public RegisterUsersController(
-        IMessageStreamDatabase db,
+        ViewDataContext viewData,
         MessageStore messageStore)
     {
-        _db = db;
+        _viewData = viewData;
         _messageStore = messageStore;
     }
 
@@ -71,7 +71,7 @@ public class RegisterUsersController : ControllerBase
 
     private async Task<UserCredentials?> LoadExistingIdentityAsync(UserAttributesDto attributes)
     {
-        return await _db.UserCredentials.ByEmailAsync(attributes.Email);
+        return await _viewData.UserCredentials.ByEmailAsync(attributes.Email);
     }
 
     private Task ValidateAsync(UserAttributesDto attributes)

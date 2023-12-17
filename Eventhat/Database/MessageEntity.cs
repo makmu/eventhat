@@ -1,33 +1,21 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Eventhat.Database;
 
 public class MessageEntity
 {
-    public MessageEntity(
-        Guid id,
-        string streamName,
-        string type,
-        int position,
-        int globalPosition,
-        string data,
-        string metadata,
-        DateTimeOffset time)
-    {
-        Id = id;
-        StreamName = streamName;
-        Type = type;
-        Position = position;
-        GlobalPosition = globalPosition;
-        Data = data;
-        Metadata = metadata;
-        Time = time;
-    }
+    public Guid Id { get; set; }
+    public string StreamName { get; set; }
+    public string Type { get; set; }
+    public int Position { get; set; }
 
-    public Guid Id { get; }
-    public string StreamName { get; }
-    public string Type { get; }
-    public int Position { get; }
-    public int GlobalPosition { get; }
-    public string Data { get; }
-    public string Metadata { get; }
-    public DateTimeOffset Time { get; }
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global
+    public int GlobalPosition { get; set; }
+
+    public string Data { get; set; }
+    public string Metadata { get; set; }
+    public DateTimeOffset Time { get; set; }
 }

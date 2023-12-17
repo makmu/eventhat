@@ -1,17 +1,19 @@
 using Eventhat.Database;
+using Eventhat.Database.Entities;
 using Eventhat.InfraStructure;
 using Eventhat.Messages.Events;
+using Microsoft.EntityFrameworkCore;
 
 namespace Eventhat.Aggregators;
 
 public class UserCredentialsAggregator : IAgent
 {
-    private readonly IMessageStreamDatabase _db;
     private readonly MessageSubscription _subscription;
+    private readonly IDbContextFactory<ViewDataContext> _viewDataDb;
 
-    public UserCredentialsAggregator(IMessageStreamDatabase db, MessageStore messageStore)
+    public UserCredentialsAggregator(IDbContextFactory<ViewDataContext> viewDataDb, MessageStore messageStore)
     {
-        _db = db;
+        _viewDataDb = viewDataDb;
         _subscription = messageStore.CreateSubscription(
             "identity",
             "aggregators:user-credentials");
@@ -28,8 +30,19 @@ public class UserCredentialsAggregator : IAgent
         _subscription.Stop();
     }
 
-    public async Task RegisteredAsync(Message<Registered> message)
+    private async Task RegisteredAsync(Message<Registered> message)
     {
-        await _db.InsertUserCredentialAsync(message.Data.UserId, message.Data.Email, message.Data.PasswordHash);
+        using var viewData = _viewDataDb.CreateDbContext();
+
+        if (viewData.UserCredentials.All(x => x.Id != message.Data.UserId))
+        {
+            await viewData.UserCredentials.AddAsync(new UserCredentials
+            {
+                Id = message.Data.UserId,
+                Email = message.Data.Email,
+                PasswordHash = message.Data.PasswordHash
+            });
+            await viewData.SaveChangesAsync();
+        }
     }
 }

@@ -1,17 +1,13 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Eventhat.Database.Entities;
 
 public class VideoOperation
 {
-    public VideoOperation(Guid traceId, Guid videoId, bool succeeded, string failureReason)
-    {
-        TraceId = traceId;
-        VideoId = videoId;
-        Succeeded = succeeded;
-        FailureReason = failureReason;
-    }
+    [Key]
+    public Guid TraceId { get; set; }
 
-    public Guid TraceId { get; }
-    public Guid VideoId { get; }
-    public bool Succeeded { get; }
-    public string FailureReason { get; }
+    public Guid VideoId { get; set; }
+    public bool Succeeded { get; set; }
+    public string FailureReason { get; set; }
 }

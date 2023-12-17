@@ -5,15 +5,23 @@ using Eventhat.Components;
 using Eventhat.Database;
 using Eventhat.InfraStructure;
 using Eventhat.Mail;
-using Eventhat.Testing;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddSingleton<IMessageStreamDatabase, InMemoryMessageStreamDatabase>();
+builder.Services.AddDbContextFactory<MessageContext>(
+    options => options.UseSqlServer("Server=127.0.0.1;Database=MessageDb;User Id=sa;Password=!SAPassword!1;")
+    //options => options.UseInMemoryDatabase("MessageDb")
+);
+builder.Services.AddDbContextFactory<ViewDataContext>(
+    options => options.UseSqlServer("Server=127.0.0.1;Database=ViewDataDb;User Id=sa;Password=!SAPassword!1;")
+    //options => options.UseInMemoryDatabase("ViewDataDb")
+);
+
 builder.Services.AddSingleton<MessageStore>();
 
 builder.Services.AddControllers();
@@ -86,22 +94,34 @@ app.UseAuthorization();
 app.MapControllers();
 
 // get services
-var db = app.Services.GetService<IMessageStreamDatabase>();
-if (db == null)
-    throw new Exception("Could not inject database at start");
+
+var messageContextFactory = app.Services.GetService<IDbContextFactory<MessageContext>>();
+if (messageContextFactory == null) throw new Exception("Could not initialize message database");
+using (var context = messageContextFactory.CreateDbContext())
+{
+    context.Database.EnsureCreated();
+}
+
+var viewDataContextFactory = app.Services.GetService<IDbContextFactory<ViewDataContext>>();
+if (viewDataContextFactory == null) throw new Exception("Could not initialize view data database");
+
+using (var context = viewDataContextFactory.CreateDbContext())
+{
+    context.Database.EnsureCreated();
+}
+
 var messageStore = app.Services.GetService<MessageStore>();
-if (messageStore == null)
-    throw new Exception("Could not inject message store at start");
+if (messageStore == null) throw new Exception("Could not initialize message store");
 
 // build aggregators
-IEnumerable<IAgent> agggregators = new IAgent[]
+IEnumerable<IAgent> aggregators = new IAgent[]
 {
-    new HomePageAggregator(db, messageStore),
-    new UserCredentialsAggregator(db, messageStore),
-    new VideoOperationsAggregator(db, messageStore),
-    new CreatorsVideosAggregator(db, messageStore),
-    new AdminUsersAggregator(db, messageStore),
-    new AdminStreamsAggregator(db, messageStore)
+    new HomePageAggregator(viewDataContextFactory, messageStore),
+    new UserCredentialsAggregator(viewDataContextFactory, messageStore),
+    new VideoOperationsAggregator(viewDataContextFactory, messageStore),
+    new CreatorsVideosAggregator(viewDataContextFactory, messageStore),
+    new AdminUsersAggregator(viewDataContextFactory, messageStore),
+    new AdminStreamsAggregator(viewDataContextFactory, messageStore)
 };
 
 // build components
@@ -113,7 +133,7 @@ IEnumerable<IAgent> components = new IAgent[]
 };
 
 // start aggregators
-foreach (var aggregator in agggregators) aggregator.Start();
+foreach (var aggregator in aggregators) aggregator.Start();
 
 // start components
 foreach (var component in components) component.Start();
@@ -121,7 +141,7 @@ foreach (var component in components) component.Start();
 app.Run();
 
 // stop aggregators
-foreach (var aggregator in agggregators) aggregator.Stop();
+foreach (var aggregator in aggregators) aggregator.Stop();
 
 // stop components
 foreach (var component in components) component.Stop();

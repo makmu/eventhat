@@ -1,13 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Eventhat.Database;
 
 public class Page
 {
-    public Page(string name, string data)
-    {
-        Name = name;
-        Data = data;
-    }
+    [Key]
+    public string Name { get; set; }
 
-    public string Name { get; }
-    public string Data { get; }
+    public string Data { get; set; }
 }

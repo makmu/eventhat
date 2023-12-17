@@ -9,11 +9,13 @@ namespace Eventhat.Controllers;
 [Route("admin")]
 public class AdminController : ControllerBase
 {
-    private readonly IMessageStreamDatabase _db;
+    private readonly MessageContext _messageContext;
+    private readonly ViewDataContext _viewDataContext;
 
-    public AdminController(IMessageStreamDatabase db)
+    public AdminController(ViewDataContext viewDataContext, MessageContext messageContext)
     {
-        _db = db;
+        _viewDataContext = viewDataContext;
+        _messageContext = messageContext;
     }
 
     [HttpGet("users")]
@@ -21,7 +23,7 @@ public class AdminController : ControllerBase
     {
         return Task.FromResult<ActionResult<IEnumerable<Guid>>>(
             Ok(
-                _db.AdminUsers.Select(u => u.Id)));
+                _viewDataContext.AdminUsers.Select(u => u.Id)));
     }
 
     [HttpGet("users/{userId}")]
@@ -29,7 +31,7 @@ public class AdminController : ControllerBase
     {
         return Task.FromResult<ActionResult<AdminUserDto>>(
             Ok(
-                _db.AdminUsers
+                _viewDataContext.AdminUsers
                     .Where(u => u.Id == userId)
                     .Select(u => new AdminUserDto(u.Id, u.Email, u.LoginCount))
                     .FirstOrDefault()));
@@ -40,9 +42,9 @@ public class AdminController : ControllerBase
     {
         return Task.FromResult<ActionResult<IEnumerable<MessageDto>>>(
             Ok(
-                _db.Messages
+                _messageContext.Messages
                     .OrderBy(m => m.GlobalPosition)
-                    .Select(m => new MessageDto(m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Type, m.Time)
+                    .Select(m => new MessageDto(m.GlobalPosition, m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Position, m.Type, m.Time)
                     )));
     }
 
@@ -51,10 +53,10 @@ public class AdminController : ControllerBase
     {
         return Task.FromResult<ActionResult<IEnumerable<MessageDto>>>(
             Ok(
-                _db.Messages
+                _messageContext.Messages
                     .Where(m => m.StreamName == streamName)
                     .OrderBy(m => m.GlobalPosition)
-                    .Select(m => new MessageDto(m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Type, m.Time)
+                    .Select(m => new MessageDto(m.GlobalPosition, m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Position, m.Type, m.Time)
                     )));
     }
 
@@ -63,10 +65,10 @@ public class AdminController : ControllerBase
     {
         return Task.FromResult<ActionResult<IEnumerable<MessageDto>>>(
             Ok(
-                _db.Messages
+                _messageContext.Messages
                     .Where(m => m.Metadata.Deserialize<Metadata>().TraceId == correlationId)
                     .OrderBy(m => m.GlobalPosition)
-                    .Select(m => new MessageDto(m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Type, m.Time)
+                    .Select(m => new MessageDto(m.GlobalPosition, m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Position, m.Type, m.Time)
                     )));
     }
 
@@ -75,7 +77,7 @@ public class AdminController : ControllerBase
     {
         return Task.FromResult<ActionResult<IEnumerable<AdminStreamDto>>>(
             Ok(
-                _db.AdminStreams
+                _viewDataContext.AdminStreams
                     .Select(s => new AdminStreamDto(s.StreamName, s.MessageCount, s.LastMessageId))));
     }
 
@@ -95,20 +97,24 @@ public class AdminController : ControllerBase
 
     public class MessageDto
     {
-        public MessageDto(Guid id, Guid correlationId, Guid userId, string stream, string type, DateTimeOffset timestamp)
+        public MessageDto(int globalPosition, Guid id, Guid correlationId, Guid userId, string stream, int position, string type, DateTimeOffset timestamp)
         {
+            GlobalPosition = globalPosition;
             Id = id;
             CorrelationId = correlationId;
             UserId = userId;
             Stream = stream;
+            Position = position;
             Type = type;
             Timestamp = timestamp;
         }
 
+        public int GlobalPosition { get; }
         public Guid Id { get; }
         public Guid CorrelationId { get; }
         public Guid UserId { get; }
         public string Stream { get; }
+        public int Position { get; }
         public string Type { get; }
         public DateTimeOffset Timestamp { get; }
     }

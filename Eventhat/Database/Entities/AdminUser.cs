@@ -2,26 +2,10 @@ namespace Eventhat.Database.Entities;
 
 public class AdminUser
 {
-    public AdminUser(
-        Guid id,
-        string email,
-        bool registrationEmailSent,
-        int lastIdentityEventGlobalPosition,
-        int loginCount,
-        int lastAuthenticationEventGlobalPosition)
-    {
-        Id = id;
-        Email = email;
-        RegistrationEmailSent = registrationEmailSent;
-        LastIdentityEventGlobalPosition = lastIdentityEventGlobalPosition;
-        LoginCount = loginCount;
-        LastAuthenticationEventGlobalPosition = lastAuthenticationEventGlobalPosition;
-    }
-
-    public Guid Id { get; }
-    public string Email { get; }
-    public bool RegistrationEmailSent { get; }
-    public int LastIdentityEventGlobalPosition { get; }
-    public int LoginCount { get; }
-    public int LastAuthenticationEventGlobalPosition { get; }
+    public Guid Id { get; set; }
+    public string Email { get; set; }
+    public bool RegistrationEmailSent { get; set; }
+    public int LastIdentityEventGlobalPosition { get; set; }
+    public int LoginCount { get; set; }
+    public int LastAuthenticationEventGlobalPosition { get; set; }
 }

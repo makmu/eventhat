@@ -10,13 +10,13 @@ namespace Eventhat.Controllers;
 [Route("creators-portal")]
 public class CreatorsPortalController : ControllerBase
 {
-    private readonly IMessageStreamDatabase _db;
     private readonly MessageStore _messageStore;
+    private readonly ViewDataContext _viewData;
 
-    public CreatorsPortalController(MessageStore messageStore, IMessageStreamDatabase db)
+    public CreatorsPortalController(MessageStore messageStore, ViewDataContext viewData)
     {
         _messageStore = messageStore;
-        _db = db;
+        _viewData = viewData;
     }
 
     [HttpPost("publish-video")]
@@ -54,7 +54,7 @@ public class CreatorsPortalController : ControllerBase
     {
         return Task.FromResult<ActionResult<VideoOperationDto>>(
             Ok(
-                _db.VideoOperations
+                _viewData.VideoOperations
                     .Where(x => x.TraceId == traceId)
                     .Select(x => new VideoOperationDto(x.TraceId, x.VideoId, x.Succeeded, x.FailureReason))
                     .FirstOrDefault()));
@@ -65,9 +65,9 @@ public class CreatorsPortalController : ControllerBase
     {
         return Task.FromResult<ActionResult<VideoDto>>(
             Ok(
-                _db.CreatorVideos
-                    .Where(x => x.VideoId == videoId)
-                    .Select(x => new VideoDto(x.VideoId, x.Name, x.TranscodedUri))
+                _viewData.CreatorVideos
+                    .Where(x => x.Id == videoId)
+                    .Select(x => new VideoDto(x.Id, x.Name, x.TranscodedUri))
                     .FirstOrDefault()));
     }
 
