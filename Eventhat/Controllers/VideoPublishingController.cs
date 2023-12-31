@@ -22,14 +22,14 @@ public class CreatorsPortalController : ControllerBase
     [HttpPost("publish-video")]
     public async Task<ActionResult> PublishVideoAsync([FromBody] VideoPublishingDto videoPublishing)
     {
-        var tranceId = Guid.NewGuid();
+        var traceId = Guid.NewGuid();
 
         // TODO: get user id from request
         var userId = Guid.NewGuid();
 
         var publishVideo = new PublishVideo(videoPublishing.VideoId, videoPublishing.OwnerId, videoPublishing.SourceUri);
 
-        await _messageStore.WriteAsync($"videoPublishing:command-{videoPublishing.VideoId}", new Metadata(tranceId, userId), publishVideo, 0);
+        await _messageStore.WriteAsync($"videoPublishing:command-{videoPublishing.VideoId}", new Metadata(traceId, userId), publishVideo, 0);
 
         return Accepted();
     }
@@ -37,16 +37,16 @@ public class CreatorsPortalController : ControllerBase
     [HttpPost("name-video/{videoId}")]
     public async Task<ActionResult> NameVideoAsync(Guid videoId, [FromBody] string name)
     {
-        var tranceId = Guid.NewGuid();
+        var traceId = Guid.NewGuid();
 
         // TODO: get user id from request
         var userId = Guid.NewGuid();
 
         var publishVideo = new NameVideo(videoId, name);
 
-        await _messageStore.WriteAsync($"videoPublishing:command-{videoId}", new Metadata(tranceId, userId), publishVideo);
+        await _messageStore.WriteAsync($"videoPublishing:command-{videoId}", new Metadata(traceId, userId), publishVideo);
 
-        return Accepted(tranceId);
+        return Accepted(traceId);
     }
 
     [HttpGet("video-operations/{traceId}")]
@@ -103,14 +103,14 @@ public class CreatorsPortalController : ControllerBase
 
     public class VideoDto
     {
-        public VideoDto(Guid viceoId, string name, Uri transcodedUri)
+        public VideoDto(Guid videoId, string name, Uri transcodedUri)
         {
-            ViceoId = viceoId;
+            VideoId = videoId;
             Name = name;
             TranscodedUri = transcodedUri;
         }
 
-        public Guid ViceoId { get; }
+        public Guid VideoId { get; }
         public string Name { get; }
         public Uri TranscodedUri { get; }
     }
