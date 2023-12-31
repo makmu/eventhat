@@ -7,8 +7,8 @@ public class Identity : ProjectionBase
 {
     public Identity()
     {
-        RegisterEvenHandler<Registered>(ApplyRegistered);
-        RegisterEvenHandler<RegistrationEmailSent>(ApplyRegistrationEmailSent);
+        RegisterEventHandler<Registered>(ApplyRegistered);
+        RegisterEventHandler<RegistrationEmailSent>(ApplyRegistrationEmailSent);
     }
 
     public Guid Id { get; set; } = Guid.Empty;

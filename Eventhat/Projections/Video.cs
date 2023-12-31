@@ -7,10 +7,10 @@ public class Video : ProjectionBase
 {
     public Video()
     {
-        RegisterEvenHandler<VideoPublished>(VideoPublished);
-        RegisterEvenHandler<VideoPublishingFailed>(VideoPublishingFailed);
-        RegisterEvenHandler<VideoNamed>(VideoNamed);
-        RegisterEvenHandler<VideoNameRejected>(VideoNameRejected);
+        RegisterEventHandler<VideoPublished>(VideoPublished);
+        RegisterEventHandler<VideoPublishingFailed>(VideoPublishingFailed);
+        RegisterEventHandler<VideoNamed>(VideoNamed);
+        RegisterEventHandler<VideoNameRejected>(VideoNameRejected);
     }
 
     public Guid Id { get; set; }

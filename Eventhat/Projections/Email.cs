@@ -7,7 +7,7 @@ public class Email : ProjectionBase
 {
     public Email()
     {
-        RegisterEvenHandler<Sent>(ApplySent);
+        RegisterEventHandler<Sent>(ApplySent);
     }
 
     public bool IsSent { get; private set; }

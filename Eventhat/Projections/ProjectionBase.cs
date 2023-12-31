@@ -7,7 +7,7 @@ public abstract class ProjectionBase
 {
     private readonly Dictionary<Type, Action<Guid, string, string, string, int, int>> _handlers = new();
 
-    protected void RegisterEvenHandler<T>(Action<Message<T>> handler)
+    protected void RegisterEventHandler<T>(Action<Message<T>> handler)
     {
         _handlers.Add(typeof(T),
             (id, streamName, metadata, data, position, globalPosition) => handler(new Message<T>(id, streamName, metadata.Deserialize<Metadata>(), data.Deserialize<T>(), position, globalPosition)));
