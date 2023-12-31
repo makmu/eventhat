@@ -60,13 +60,18 @@ public class AdminController : ControllerBase
                     )));
     }
 
-    [HttpGet("correlated-message")]
-    public Task<ActionResult<IEnumerable<MessageDto>>> GetCorrelatedMessages(Guid correlationId)
+    [HttpGet("correlated-messages")]
+    public Task<ActionResult<IEnumerable<MessageDto>>> GetCorrelatedMessages(Guid traceId)
     {
+        // TODO:
+        // For improved efficiency, consider creating a dedicated view data table.
+        // This table could facilitate querying for correlated messages selectively,
+        // avoiding the need to load the entire message store for such operations.
         return Task.FromResult<ActionResult<IEnumerable<MessageDto>>>(
             Ok(
                 _messageContext.Messages
-                    .Where(m => m.Metadata.Deserialize<Metadata>().TraceId == correlationId)
+                    .ToList()
+                    .Where(m => m.Metadata.Deserialize<Metadata>().TraceId == traceId)
                     .OrderBy(m => m.GlobalPosition)
                     .Select(m => new MessageDto(m.GlobalPosition, m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Position, m.Type, m.Time)
                     )));
@@ -97,11 +102,11 @@ public class AdminController : ControllerBase
 
     public class MessageDto
     {
-        public MessageDto(int globalPosition, Guid id, Guid correlationId, Guid userId, string stream, int position, string type, DateTimeOffset timestamp)
+        public MessageDto(int globalPosition, Guid id, Guid traceId, Guid userId, string stream, int position, string type, DateTimeOffset timestamp)
         {
             GlobalPosition = globalPosition;
             Id = id;
-            CorrelationId = correlationId;
+            TraceId = traceId;
             UserId = userId;
             Stream = stream;
             Position = position;
@@ -111,7 +116,7 @@ public class AdminController : ControllerBase
 
         public int GlobalPosition { get; }
         public Guid Id { get; }
-        public Guid CorrelationId { get; }
+        public Guid TraceId { get; }
         public Guid UserId { get; }
         public string Stream { get; }
         public int Position { get; }
