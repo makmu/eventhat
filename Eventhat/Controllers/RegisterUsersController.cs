@@ -35,7 +35,7 @@ public class RegisterUsersController : ControllerBase
             EnsureThereWasNoExistingIdentity(identity);
             var passwordHash = HashPassword(attributes);
             await WriteRegisterCommandAsync(traceId, attributes.Id, attributes.Email, passwordHash);
-            return Accepted();
+            return Accepted(traceId);
         }
         catch (ValidationException e)
         {

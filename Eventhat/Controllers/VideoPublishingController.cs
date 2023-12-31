@@ -31,7 +31,7 @@ public class CreatorsPortalController : ControllerBase
 
         await _messageStore.WriteAsync($"videoPublishing:command-{videoPublishing.VideoId}", new Metadata(traceId, userId), publishVideo, 0);
 
-        return Accepted();
+        return Accepted(traceId);
     }
 
     [HttpPost("name-video/{videoId}")]

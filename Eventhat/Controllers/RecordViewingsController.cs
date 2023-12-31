@@ -19,20 +19,19 @@ public class RecordViewingsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult> RecordViewingAsync([FromBody] Guid videoId)
     {
-        var tranceId = Guid.NewGuid();
+        var traceId = Guid.NewGuid();
 
         // TODO: get user id from request
         var userId = Guid.NewGuid();
-
 
         // TODO: get expected version
         var expectedVersion = 0;
         await _messageStore.WriteAsync(
             $"viewing-{videoId}",
-            new Metadata(tranceId, userId),
+            new Metadata(traceId, userId),
             new VideoViewed(userId, videoId),
             expectedVersion);
 
-        return Accepted();
+        return Accepted(traceId);
     }
 }
