@@ -46,7 +46,7 @@ public class SendEmailComponent : IAgent
         }
         catch (AlreadySentException)
         {
-            // to nothing
+            // do nothing
         }
         catch (SendException e)
         {

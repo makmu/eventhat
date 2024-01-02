@@ -99,7 +99,7 @@ public class IdentityComponent : IAgent
         }
         catch (AlreadySentRegistrationEmailException)
         {
-            // to nothing
+            // do nothing
         }
     }
 

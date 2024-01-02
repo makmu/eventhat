@@ -42,7 +42,7 @@ public class VideoPublishingComponent : IAgent
         }
         catch (CommandAlreadyProcessedException)
         {
-            // to nothing
+            // do nothing
         }
         catch (NameValidationException e)
         {
@@ -88,7 +88,7 @@ public class VideoPublishingComponent : IAgent
         }
         catch (AlreadyPublishedException)
         {
-            // to nothing
+            // do nothing
         }
         catch (Exception e)
         {
