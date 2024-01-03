@@ -1,3 +1,4 @@
+using Eventhat.Components.Exceptions;
 using Eventhat.InfraStructure;
 using Eventhat.Messages.Commands;
 using Eventhat.Messages.Events;

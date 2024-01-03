@@ -44,7 +44,8 @@ public class AdminController : ControllerBase
             Ok(
                 _messageContext.Messages
                     .OrderBy(m => m.GlobalPosition)
-                    .Select(m => new MessageDto(m.GlobalPosition, m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Position, m.Type, m.Time)
+                    .Select(m => new MessageDto(m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Type, m.Position, m.GlobalPosition, m.Time,
+                        m.Data)
                     )));
     }
 
@@ -56,7 +57,8 @@ public class AdminController : ControllerBase
                 _messageContext.Messages
                     .Where(m => m.StreamName == streamName)
                     .OrderBy(m => m.GlobalPosition)
-                    .Select(m => new MessageDto(m.GlobalPosition, m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Position, m.Type, m.Time)
+                    .Select(m => new MessageDto(m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Type, m.Position, m.GlobalPosition, m.Time,
+                        m.Data)
                     )));
     }
 
@@ -73,7 +75,8 @@ public class AdminController : ControllerBase
                     .ToList()
                     .Where(m => m.Metadata.Deserialize<Metadata>().TraceId == traceId)
                     .OrderBy(m => m.GlobalPosition)
-                    .Select(m => new MessageDto(m.GlobalPosition, m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Position, m.Type, m.Time)
+                    .Select(m => new MessageDto(m.Id, m.Metadata.Deserialize<Metadata>().TraceId, m.Metadata.Deserialize<Metadata>().UserId, m.StreamName, m.Type, m.Position, m.GlobalPosition, m.Time,
+                        m.Data)
                     )));
     }
 
@@ -102,16 +105,17 @@ public class AdminController : ControllerBase
 
     public class MessageDto
     {
-        public MessageDto(int globalPosition, Guid id, Guid traceId, Guid userId, string stream, int position, string type, DateTimeOffset timestamp)
+        public MessageDto(Guid id, Guid traceId, Guid userId, string stream, string type, int position, int globalPosition, DateTimeOffset timestamp, string data)
         {
-            GlobalPosition = globalPosition;
             Id = id;
             TraceId = traceId;
             UserId = userId;
             Stream = stream;
-            Position = position;
             Type = type;
+            Position = position;
+            GlobalPosition = globalPosition;
             Timestamp = timestamp;
+            Data = data;
         }
 
         public int GlobalPosition { get; }
@@ -119,8 +123,9 @@ public class AdminController : ControllerBase
         public Guid TraceId { get; }
         public Guid UserId { get; }
         public string Stream { get; }
-        public int Position { get; }
         public string Type { get; }
+        public int Position { get; }
+        public string Data { get; }
         public DateTimeOffset Timestamp { get; }
     }
 
