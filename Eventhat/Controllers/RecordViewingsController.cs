@@ -1,3 +1,4 @@
+using Eventhat.Helpers;
 using Eventhat.InfraStructure;
 using Eventhat.Messages.Events;
 using Microsoft.AspNetCore.Mvc;
@@ -21,16 +22,13 @@ public class RecordViewingsController : ControllerBase
     {
         var traceId = Guid.NewGuid();
 
-        // TODO: get user id from request
-        var userId = Guid.NewGuid();
+        var userId = User.Id();
+        if (userId == null) return BadRequest("Missing user id in authentication");
 
-        // TODO: get expected version
-        var expectedVersion = 0;
         await _messageStore.WriteAsync(
             $"viewing-{videoId}",
-            new Metadata(traceId, userId),
-            new VideoViewed(userId, videoId),
-            expectedVersion);
+            new Metadata(traceId, userId.Value),
+            new VideoViewed(userId.Value, videoId));
 
         return Accepted(traceId);
     }

@@ -35,17 +35,22 @@ builder.Services.AddAuthentication(options =>
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(options =>
 {
+    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Authorization:SecretKey"]));
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
+        ValidIssuer = builder.Configuration["Authorization:Issuer"],
         ValidateAudience = true,
+        ValidAudience = builder.Configuration["Authorization:Audience"],
+        ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = "me",
-        ValidAudience = "my_audience",
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("this is my custom Secret key for authentication")),
+        IssuerSigningKey = key,
         ClockSkew = TimeSpan.Zero
     };
+    options.IncludeErrorDetails = true;
 });
+builder.Services.AddAuthorization();
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });

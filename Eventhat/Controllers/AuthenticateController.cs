@@ -16,15 +16,18 @@ namespace Eventhat.Controllers;
 [Route("/auth")]
 public class AuthenticateController : ControllerBase
 {
+    private readonly IConfiguration _configuration;
     private readonly MessageStore _messageStore;
     private readonly ViewDataContext _viewData;
 
     public AuthenticateController(
         ViewDataContext viewData,
-        MessageStore messageStore)
+        MessageStore messageStore,
+        IConfiguration configuration)
     {
         _viewData = viewData;
         _messageStore = messageStore;
+        _configuration = configuration;
     }
 
     [HttpPost]
@@ -53,19 +56,22 @@ public class AuthenticateController : ControllerBase
 
     private string GenerateJwtToken(Guid userId)
     {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes("this is my custom Secret key for authentication");
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(new Claim[]
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Authorization:SecretKey"]));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            _configuration["Authorization:Issuer"],
+            _configuration["Authorization:Audience"],
+            new[]
             {
-                new(ClaimTypes.Name, userId.ToString())
-            }),
-            Expires = DateTime.UtcNow.AddHours(1),
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        };
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
+                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            },
+            expires: DateTime.UtcNow.AddHours(1),
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
     private async Task HandleCredentialMismatchAsync(Guid traceId, Guid userId)
