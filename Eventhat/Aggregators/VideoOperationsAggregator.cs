@@ -20,6 +20,8 @@ public class VideoOperationsAggregator : IAgent
             "aggregators:video-operations");
         _subscription.RegisterHandler<VideoNamed>(VideoNamedAsync);
         _subscription.RegisterHandler<VideoNameRejected>(VideoNameRejectedAsync);
+        _subscription.RegisterHandler<VideoPublished>(VideoPublishedAsync);
+        _subscription.RegisterHandler<VideoPublishingFailed>(VideoPublishingFailedAsync);
     }
 
     public void Start()
@@ -43,6 +45,37 @@ public class VideoOperationsAggregator : IAgent
                 VideoId = message.StreamName.ToId(),
                 Succeeded = false,
                 FailureReason = message.Data.Reason
+            });
+            await viewData.SaveChangesAsync();
+        }
+    }
+
+    private async Task VideoPublishingFailedAsync(Message<VideoPublishingFailed> message)
+    {
+        using var viewData = _viewDataDb.CreateDbContext();
+        if (viewData.VideoOperations.All(x => x.TraceId != message.Metadata.TraceId))
+        {
+            await viewData.VideoOperations.AddAsync(new VideoOperation
+            {
+                TraceId = message.Metadata.TraceId,
+                VideoId = message.StreamName.ToId(),
+                Succeeded = false,
+                FailureReason = message.Data.Reason
+            });
+            await viewData.SaveChangesAsync();
+        }
+    }
+
+    private async Task VideoPublishedAsync(Message<VideoPublished> message)
+    {
+        using var viewData = _viewDataDb.CreateDbContext();
+        if (viewData.VideoOperations.All(x => x.TraceId != message.Metadata.TraceId))
+        {
+            await viewData.VideoOperations.AddAsync(new VideoOperation
+            {
+                TraceId = message.Metadata.TraceId,
+                VideoId = message.StreamName.ToId(),
+                Succeeded = true
             });
             await viewData.SaveChangesAsync();
         }

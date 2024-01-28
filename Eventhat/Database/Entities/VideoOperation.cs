@@ -9,5 +9,5 @@ public class VideoOperation
 
     public Guid VideoId { get; set; }
     public bool Succeeded { get; set; }
-    public string FailureReason { get; set; }
+    public string? FailureReason { get; set; }
 }
