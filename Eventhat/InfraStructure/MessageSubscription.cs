@@ -124,6 +124,7 @@ public class MessageSubscription
     {
         await LoadPosition();
 
+        await TickAsync();
         while (_keepGoing)
         {
             var nothingToDo = true;
